@@ -52,11 +52,11 @@ export default function SettingsPage() {
 
                     <div className="space-y-4">
                         <div className="p-4 bg-white/5 rounded-xl border border-white/5">
-                            <h3 className="font-medium text-white mb-2">PWA Installation</h3>
-                            <p className="text-sm text-white/40 mb-4">Install this app on your device home screen for quick access.</p>
+                            <h3 className="font-medium text-white mb-2">Password</h3>
+                            <p className="text-sm text-white/40 mb-4">Update your account password for better security.</p>
                             <div className="flex gap-2">
-                                <NeonButton size="sm" variant="success">
-                                    <Smartphone className="w-4 h-4 mr-2" /> Install to Desktop
+                                <NeonButton size="sm" variant="primary" glow={false}>
+                                    <Shield className="w-4 h-4 mr-2" /> Change Password
                                 </NeonButton>
                             </div>
                         </div>
