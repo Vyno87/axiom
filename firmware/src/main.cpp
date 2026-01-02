@@ -30,9 +30,9 @@ WiFiClientSecure client;
 // TFT Display using TFT_eSPI
 TFT_eSPI tft = TFT_eSPI();
 
-// Button Pins
-#define BTN_UP 25
-#define BTN_SELECT 26
+// Button Pins (updated to avoid RTC conflict)
+#define BTN_UP 33
+#define BTN_SELECT 32
 #define BTN_DOWN 27
 
 // UI Colors (Dark Theme) - RGB565 format

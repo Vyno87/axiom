@@ -16,8 +16,8 @@
 ### DS3231 RTC Module (I2C)
 - VCC → 3.3V
 - GND → GND
-- SDA → GPIO21
-- SCL → GPIO22
+- SDA → GPIO25
+- SCL → GPIO26
 
 ### ST7789 TFT Display (SPI)
 - VCC → 3.3V
@@ -30,8 +30,8 @@
 - BL → GPIO15
 
 ### Navigation Buttons
-- Button UP → GPIO25 (with pull-up)
-- Button SELECT → GPIO26 (with pull-up)
+- Button UP → GPIO33 (with pull-up)
+- Button SELECT → GPIO32 (with pull-up)
 - Button DOWN → GPIO27 (with pull-up)
 
 ## Setup Instructions
