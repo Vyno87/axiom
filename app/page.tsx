@@ -4,10 +4,44 @@ import { motion } from "framer-motion";
 import StatsGrid from "@/components/dashboard/StatsGrid";
 import RecentLog from "@/components/dashboard/RecentLog";
 import NeonButton from "@/components/ui/NeonButton";
-import { Download, RefreshCw } from "lucide-react";
+import { Download, RefreshCw, Lock } from "lucide-react";
 import GlassCard from "@/components/ui/GlassCard";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 export default function Dashboard() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.push("/login");
+    }
+  }, [status, router]);
+
+  if (status === "loading") return <div className="text-white/40">Loading Command Center...</div>;
+
+  if (!session) return null;
+
+  // USER DASHBOARD (Limited View)
+  if ((session?.user as any)?.role !== "admin") {
+    return (
+      <div className="space-y-6">
+        <h1 className="text-3xl font-bold text-white">Welcome, {session.user?.name}</h1>
+        <GlassCard>
+          <div className="text-center py-12">
+            <Lock className="w-12 h-12 text-cyan-500 mx-auto mb-4" />
+            <h2 className="text-xl font-bold text-white">Employee Access</h2>
+            <p className="text-white/40 mt-2">You have limited access to this system.</p>
+            <p className="text-white/40">Please scan your finger at the terminal to record attendance.</p>
+          </div>
+        </GlassCard>
+      </div>
+    );
+  }
+
+  // ADMIN DASHBOARD (Full View)
   return (
     <div className="space-y-6">
       {/* Header */}

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Sidebar from "@/components/layout/Sidebar";
+import AuthProvider from "@/components/providers/AuthProvider";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -16,6 +17,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Axiom ID | Secure Attendance System",
   description: "Advanced biometric attendance management system",
+  manifest: "/manifest.json",
 };
 
 export default function RootLayout({
@@ -28,14 +30,16 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-black text-white selection:bg-cyan-500/30`}
       >
-        <div className="flex min-h-screen">
-          <Sidebar />
-          <main className="flex-1 md:pl-64 transition-all duration-300">
-            <div className="p-8 max-w-7xl mx-auto space-y-8 min-h-screen">
-              {children}
-            </div>
-          </main>
-        </div>
+        <AuthProvider>
+          <div className="flex min-h-screen">
+            <Sidebar />
+            <main className="flex-1 md:pl-64 transition-all duration-300">
+              <div className="p-8 max-w-7xl mx-auto space-y-8 min-h-screen">
+                {children}
+              </div>
+            </main>
+          </div>
+        </AuthProvider>
       </body>
     </html>
   );

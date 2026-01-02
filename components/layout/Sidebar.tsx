@@ -2,19 +2,24 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Users, History, Settings, Fingerprint } from "lucide-react";
+import { LayoutDashboard, Users, History, Settings, Fingerprint, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
+import { useSession, signOut } from "next-auth/react";
 
 const menuItems = [
     { icon: LayoutDashboard, label: "Dashboard", href: "/" },
-    { icon: Users, label: "Employees", href: "/employees" },
-    { icon: History, label: "History", href: "/history" },
+    { icon: Users, label: "Employees", href: "/employees", role: "admin" },
+    { icon: History, label: "History", href: "/history", role: "admin" },
     { icon: Settings, label: "Settings", href: "/settings" },
 ];
 
 export default function Sidebar() {
     const pathname = usePathname();
+    const { data: session, status } = useSession();
+
+    // Hide sidebar on login page
+    if (pathname === "/login") return null;
 
     return (
         <motion.aside
@@ -36,6 +41,9 @@ export default function Sidebar() {
 
             <nav className="flex-1 px-4 space-y-2 mt-8">
                 {menuItems.map((item) => {
+                    // Role Check
+                    if (item.role === "admin" && (session?.user as any)?.role !== "admin") return null;
+
                     const isActive = pathname === item.href;
                     return (
                         <Link key={item.href} href={item.href}>
@@ -66,7 +74,20 @@ export default function Sidebar() {
                 })}
             </nav>
 
-            <div className="p-6">
+            <div className="p-6 space-y-4">
+                {/* User Profile */}
+                {status === "authenticated" && (
+                    <div className="flex items-center gap-3 px-2">
+                        <div className="w-8 h-8 rounded-full bg-cyan-500/20 border border-cyan-500/50 flex items-center justify-center text-xs font-bold text-cyan-400">
+                            {session.user?.name?.[0] || "U"}
+                        </div>
+                        <div className="overflow-hidden">
+                            <p className="text-sm font-medium text-white truncate">{session.user?.name}</p>
+                            <p className="text-xs text-white/40 capitalize">{(session.user as any)?.role}</p>
+                        </div>
+                    </div>
+                )}
+
                 <div className="glass-card p-4 rounded-xl bg-gradient-to-br from-cyan-900/20 to-purple-900/20 border border-white/5">
                     <p className="text-xs text-cyan-300 mb-1">System Status</p>
                     <div className="flex items-center gap-2">
