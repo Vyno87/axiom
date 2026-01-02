@@ -1,11 +1,12 @@
 #include <Adafruit_Fingerprint.h>
 #include <Arduino.h>
 #include <ArduinoJson.h>
-#include <Arduino_GFX_Library.h>
 #include <HTTPClient.h>
 #include <RTClib.h>
+#include <TFT_eSPI.h>
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
+
 
 // ============ CONFIGURATION ============
 // WiFi Credentials
@@ -14,7 +15,8 @@ const char *WIFI_PASSWORD = "Nyorean9";
 
 // API Configuration
 const char *API_URL = "https://safira.my.id/api/ingest";
-const char *API_KEY = "YOUR_API_KEY_HERE"; // Copy from .env.local
+const char *API_KEY =
+    "AxiomSecure_2026_Key"; // Matches HARDWARE_API_KEY in .env.local
 
 // Hardware Serial for AS608 (TX2=GPIO17, RX2=GPIO16)
 HardwareSerial mySerial(2);
@@ -26,22 +28,15 @@ RTC_DS3231 rtc;
 // WiFi Client
 WiFiClientSecure client;
 
-// TFT Display ST7789 1.3" (SPI)
-// MOSI=GPIO23, SCK=GPIO18, CS=GPIO5, DC=GPIO2, RST=GPIO4, BL=GPIO15
-Arduino_DataBus *bus = new Arduino_ESP32SPI(
-    2 /* DC */, 5 /* CS */, 18 /* SCK */, 23 /* MOSI */, -1 /* MISO */);
-Arduino_ST7789 *gfx =
-    new Arduino_ST7789(bus, 4 /* RST */, 0 /* rotation */, true /* IPS */,
-                       240 /* width */, 240 /* height */);
-
-#define TFT_BL 15
+// TFT Display using TFT_eSPI
+TFT_eSPI tft = TFT_eSPI();
 
 // Button Pins
 #define BTN_UP 25
 #define BTN_SELECT 26
 #define BTN_DOWN 27
 
-// UI Colors (Dark Theme)
+// UI Colors (Dark Theme) - RGB565 format
 #define COLOR_BG 0x0000      // Black
 #define COLOR_PRIMARY 0x07FF // Cyan
 #define COLOR_SUCCESS 0x07E0 // Green
@@ -136,12 +131,10 @@ void loop() {
 
 // ============ DISPLAY FUNCTIONS ============
 void initDisplay() {
-  pinMode(TFT_BL, OUTPUT);
-  digitalWrite(TFT_BL, HIGH); // Backlight ON
-
-  gfx->begin();
-  gfx->fillScreen(COLOR_BG);
-  gfx->setTextColor(COLOR_TEXT);
+  tft.init();
+  tft.setRotation(0); // Portrait mode
+  tft.fillScreen(COLOR_BG);
+  tft.setTextColor(COLOR_TEXT);
 
   drawCenteredText("AXIOM", 80, COLOR_PRIMARY, 3);
   drawCenteredText("Initializing...", 120, COLOR_TEXT, 2);
@@ -150,37 +143,37 @@ void initDisplay() {
 
 void showMainMenu() {
   currentMenu = MENU_MAIN;
-  gfx->fillScreen(COLOR_BG);
+  tft.fillScreen(COLOR_BG);
 
   drawCenteredText("MAIN MENU", 20, COLOR_PRIMARY, 2);
 
   // Menu items
-  gfx->setTextSize(2);
-  gfx->setTextColor(menuSelection == 0 ? COLOR_PRIMARY : COLOR_GRAY);
-  gfx->setCursor(40, 80);
-  gfx->print(menuSelection == 0 ? "> " : "  ");
-  gfx->print("Check-in");
+  tft.setTextSize(2);
+  tft.setTextColor(menuSelection == 0 ? COLOR_PRIMARY : COLOR_GRAY);
+  tft.setCursor(40, 80);
+  tft.print(menuSelection == 0 ? "> " : "  ");
+  tft.print("Check-in");
 
-  gfx->setTextColor(menuSelection == 1 ? COLOR_PRIMARY : COLOR_GRAY);
-  gfx->setCursor(40, 110);
-  gfx->print(menuSelection == 1 ? "> " : "  ");
-  gfx->print("Check-out");
+  tft.setTextColor(menuSelection == 1 ? COLOR_PRIMARY : COLOR_GRAY);
+  tft.setCursor(40, 110);
+  tft.print(menuSelection == 1 ? "> " : "  ");
+  tft.print("Check-out");
 
-  gfx->setTextColor(menuSelection == 2 ? COLOR_PRIMARY : COLOR_GRAY);
-  gfx->setCursor(40, 140);
-  gfx->print(menuSelection == 2 ? "> " : "  ");
-  gfx->print("Enroll New");
+  tft.setTextColor(menuSelection == 2 ? COLOR_PRIMARY : COLOR_GRAY);
+  tft.setCursor(40, 140);
+  tft.print(menuSelection == 2 ? "> " : "  ");
+  tft.print("Enroll New");
 
-  gfx->setTextSize(1);
-  gfx->setTextColor(COLOR_GRAY);
-  gfx->setCursor(30, 210);
-  gfx->print("UP/DOWN: Navigate");
-  gfx->setCursor(30, 225);
-  gfx->print("SELECT: Confirm");
+  tft.setTextSize(1);
+  tft.setTextColor(COLOR_GRAY);
+  tft.setCursor(30, 210);
+  tft.print("UP/DOWN: Navigate");
+  tft.setCursor(30, 225);
+  tft.print("SELECT: Confirm");
 }
 
 void showScanScreen(const char *title) {
-  gfx->fillScreen(COLOR_BG);
+  tft.fillScreen(COLOR_BG);
   drawCenteredText(title, 20, COLOR_PRIMARY, 2);
   drawFingerIcon(95, 80, COLOR_PRIMARY);
   drawCenteredText("Place Finger", 180, COLOR_TEXT, 2);
@@ -226,65 +219,68 @@ void showScanScreen(const char *title) {
 }
 
 void showProcessing() {
-  gfx->fillScreen(COLOR_BG);
+  tft.fillScreen(COLOR_BG);
   drawCenteredText("PROCESSING", 100, COLOR_PRIMARY, 2);
 
   // Simple spinner animation
   for (int i = 0; i < 8; i++) {
-    gfx->fillCircle(120, 140 + i * 2, 3, COLOR_PRIMARY);
+    tft.fillCircle(120, 140 + i * 2, 3, COLOR_PRIMARY);
     delay(50);
   }
 }
 
 void showSuccess(const char *name) {
-  gfx->fillScreen(COLOR_BG);
+  tft.fillScreen(COLOR_BG);
   drawCheckmark(95, 70);
   drawCenteredText("SUCCESS", 150, COLOR_SUCCESS, 3);
   drawCenteredText(name, 190, COLOR_TEXT, 2);
 }
 
 void showError(const char *message) {
-  gfx->fillScreen(COLOR_BG);
+  tft.fillScreen(COLOR_BG);
   drawX(95, 70);
   drawCenteredText("ERROR", 150, COLOR_ERROR, 3);
   drawCenteredText(message, 190, COLOR_TEXT, 2);
 }
 
 void drawCenteredText(const char *text, int y, uint16_t color, int size) {
-  gfx->setTextSize(size);
-  gfx->setTextColor(color);
+  tft.setTextSize(size);
+  tft.setTextColor(color);
+
   int16_t x1, y1;
   uint16_t w, h;
-  gfx->getTextBounds(text, 0, 0, &x1, &y1, &w, &h);
-  gfx->setCursor((240 - w) / 2, y);
-  gfx->print(text);
+  tft.setTextDatum(TC_DATUM); // Top Center
+  tft.drawString(text, tft.width() / 2, y);
+  tft.setTextDatum(TL_DATUM); // Reset to Top Left
 }
 
 void drawFingerIcon(int x, int y, uint16_t color) {
   // Simple fingerprint icon
-  gfx->fillRoundRect(x, y, 50, 70, 10, color);
-  gfx->fillRect(x + 10, y + 10, 30, 50, COLOR_BG);
+  tft.fillRoundRect(x, y, 50, 70, 10, color);
+  tft.fillRect(x + 10, y + 10, 30, 50, COLOR_BG);
 
   // Fingerprint lines
   for (int i = 0; i < 4; i++) {
-    gfx->drawLine(x + 15, y + 20 + i * 10, x + 35, y + 20 + i * 10, color);
+    tft.drawLine(x + 15, y + 20 + i * 10, x + 35, y + 20 + i * 10, color);
   }
 }
 
 void drawCheckmark(int x, int y) {
-  gfx->fillCircle(x + 25, y + 25, 40, COLOR_SUCCESS);
-  gfx->drawLine(x + 10, y + 25, x + 20, y + 40, COLOR_BG);
-  gfx->drawLine(x + 20, y + 40, x + 45, y + 10, COLOR_BG);
-  gfx->drawLine(x + 11, y + 25, x + 21, y + 40, COLOR_BG);
-  gfx->drawLine(x + 21, y + 40, x + 46, y + 10, COLOR_BG);
+  tft.fillCircle(x + 25, y + 25, 40, COLOR_SUCCESS);
+  tft.drawLine(x + 10, y + 25, x + 20, y + 40, COLOR_BG);
+  tft.drawLine(x + 20, y + 40, x + 45, y + 10, COLOR_BG);
+  // Thicker lines
+  tft.drawLine(x + 11, y + 25, x + 21, y + 40, COLOR_BG);
+  tft.drawLine(x + 21, y + 40, x + 46, y + 10, COLOR_BG);
 }
 
 void drawX(int x, int y) {
-  gfx->fillCircle(x + 25, y + 25, 40, COLOR_ERROR);
-  gfx->drawLine(x + 10, y + 10, x + 40, y + 40, COLOR_BG);
-  gfx->drawLine(x + 40, y + 10, x + 10, y + 40, COLOR_BG);
-  gfx->drawLine(x + 11, y + 10, x + 41, y + 40, COLOR_BG);
-  gfx->drawLine(x + 41, y + 10, x + 11, y + 40, COLOR_BG);
+  tft.fillCircle(x + 25, y + 25, 40, COLOR_ERROR);
+  tft.drawLine(x + 10, y + 10, x + 40, y + 40, COLOR_BG);
+  tft.drawLine(x + 40, y + 10, x + 10, y + 40, COLOR_BG);
+  // Thicker lines
+  tft.drawLine(x + 11, y + 10, x + 41, y + 40, COLOR_BG);
+  tft.drawLine(x + 41, y + 10, x + 11, y + 40, COLOR_BG);
 }
 
 // ============ BUTTON HANDLER ============
@@ -315,7 +311,7 @@ void handleButtons() {
         showScanScreen("CHECK-OUT");
         break;
       case 2:
-        gfx->fillScreen(COLOR_BG);
+        tft.fillScreen(COLOR_BG);
         drawCenteredText("ENROLL", 100, COLOR_PRIMARY, 2);
         drawCenteredText("Not Implemented", 140, COLOR_GRAY, 2);
         delay(2000);

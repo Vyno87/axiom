@@ -62,10 +62,25 @@
 - ✅ DS3231 RTC for accurate timestamps
 - ✅ HTTPS POST to backend API
 - ✅ JSON payload formatting
-- ✅ **ST7789 1.3" TFT Display with dark theme UI**
+- ✅ **ST7789 1.3" TFT Display using TFT_eSPI library**
 - ✅ **3-button navigation system**
 - ✅ **Menu options: Check-in, Check-out, Enroll**
 - ✅ **Visual feedback: Success/Error screens with icons**
+
+## TFT_eSPI Configuration
+The firmware uses TFT_eSPI library. You need to configure it:
+
+1. After PlatformIO downloads the library, find it in `.pio/libdeps/esp32dev/TFT_eSPI/`
+2. Copy `firmware/User_Setup.h` to `TFT_eSPI/User_Setup.h`
+3. **OR** edit `TFT_eSPI/User_Setup_Select.h` and uncomment the line for your setup
+
+The pin configuration is:
+- MOSI: GPIO23
+- SCK: GPIO18
+- CS: GPIO5
+- DC: GPIO2
+- RST: GPIO4
+- BL (Backlight): GPIO15
 
 ## API Communication
 Sends POST request to `https://safira.my.id/api/ingest` with:

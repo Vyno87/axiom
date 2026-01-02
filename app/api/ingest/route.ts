@@ -8,7 +8,7 @@ export async function POST(req: NextRequest) {
     try {
         // 1. API Key Validation
         const apiKey = req.headers.get('x-api-key');
-        if (apiKey !== process.env.API_KEY) {
+        if (apiKey !== process.env.HARDWARE_API_KEY) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
