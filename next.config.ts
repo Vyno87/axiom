@@ -4,7 +4,7 @@ const withPWA = require("@ducanh2912/next-pwa").default({
   dest: "public",
   disable: process.env.NODE_ENV === "development",
   register: true,
-  scope: "/app",
+  scope: "/",
   sw: "service-worker.js",
 });
 
@@ -15,6 +15,8 @@ const nextConfig: NextConfig = {
   images: {
     domains: [],
   },
+  // Add empty turbopack config to silence Next.js 16 warning
+  turbopack: {},
 };
 
 export default withPWA(nextConfig);
