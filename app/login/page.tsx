@@ -52,6 +52,7 @@ export default function LoginPage() {
     };
 
     const handleInstallClick = () => {
+        // Android / Desktop (Chrome/Edge)
         if (deferredPrompt) {
             deferredPrompt.prompt();
             deferredPrompt.userChoice.then((choiceResult: any) => {
@@ -61,6 +62,15 @@ export default function LoginPage() {
                 setDeferredPrompt(null);
                 setShowInstallPrompt(false);
             });
+        }
+        // iOS / Others - Show Manual Instructions
+        else {
+            const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
+            if (isIOS) {
+                alert("To install on iOS:\n1. Tap the Share button below 👇\n2. Scroll down and tap 'Add to Home Screen' ➕");
+            } else {
+                alert("To install:\nLook for the 'Install' icon in your browser address bar or menu.");
+            }
         }
     };
 
@@ -132,20 +142,21 @@ export default function LoginPage() {
                     </form>
 
                     <div className="mt-8 pt-6 border-t border-white/5 space-y-4">
-                        {/* PWA Install Button - Always show for Android/Desktop */}
+                        {/* PWA Install Button - Always show for iOS/Android/Desktop */}
                         <NeonButton
                             size="sm"
                             variant="success"
                             onClick={handleInstallClick}
                             className="w-full"
-                            disabled={!showInstallPrompt}
+                            // Always enabled to show instructions if prompt not available (e.g. iOS)
+                            disabled={false}
                         >
                             <Smartphone className="w-4 h-4 mr-2" />
-                            {showInstallPrompt ? "Install App (PWA)" : "Already Installed"}
+                            Install on Desktop, Android or iPhone
                         </NeonButton>
 
-                        <p className="text-white/20 text-xs flex items-center justify-center gap-1">
-                            <Shield className="w-3 h-3" /> Encrypted Connection
+                        <p className="text-white/20 text-xs text-center">
+                            Install this app on your device home screen for quick access.
                         </p>
                     </div>
                 </GlassCard>
