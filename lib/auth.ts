@@ -29,6 +29,19 @@ export const authOptions: NextAuthOptions = {
                     };
                 }
 
+                // FALLBACK: Demo user
+                if (
+                    credentials.username === "user" &&
+                    credentials.password === "user123"
+                ) {
+                    return {
+                        id: "user-fallback",
+                        name: "Demo Employee",
+                        email: "user@axiom.id",
+                        role: "user",
+                    };
+                }
+
                 try {
                     await dbConnect();
 

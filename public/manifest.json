@@ -1,16 +1,23 @@
 {
-    "name": "Axiom ID - Advanced Attendance",
+    "name": "Axiom ID - Attendance System",
     "short_name": "Axiom ID",
     "description": "Secure Biometric Attendance System using ESP32 & Blockchain",
-    "start_url": "/login",
+    "start_url": "/",
     "display": "standalone",
     "background_color": "#000000",
     "theme_color": "#06b6d4",
+    "orientation": "portrait-primary",
     "icons": [
         {
             "src": "/favicon.ico",
             "sizes": "64x64 32x32 24x24 16x16",
-            "type": "image/x-icon"
+            "type": "image/x-icon",
+            "purpose": "any maskable"
         }
-    ]
+    ],
+    "categories": [
+        "business",
+        "productivity"
+    ],
+    "screenshots": []
 }

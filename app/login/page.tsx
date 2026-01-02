@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Fingerprint, Lock, User, Shield, Download } from "lucide-react";
+import { Fingerprint, Lock, User, Shield, Download, Smartphone } from "lucide-react";
 import NeonButton from "@/components/ui/NeonButton";
 import GlassCard from "@/components/ui/GlassCard";
 
@@ -15,14 +15,22 @@ export default function LoginPage() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+    const [showInstallPrompt, setShowInstallPrompt] = useState(false);
 
-    // Handle PWA Install Prompt
-    if (typeof window !== "undefined") {
-        window.addEventListener("beforeinstallprompt", (e) => {
+    // Handle PWA Install Prompt (Android/Desktop)
+    useEffect(() => {
+        const handler = (e: Event) => {
             e.preventDefault();
             setDeferredPrompt(e);
-        });
-    }
+            setShowInstallPrompt(true);
+        };
+
+        window.addEventListener("beforeinstallprompt", handler);
+
+        return () => {
+            window.removeEventListener("beforeinstallprompt", handler);
+        };
+    }, []);
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -36,7 +44,7 @@ export default function LoginPage() {
         });
 
         if (res?.error) {
-            setError("Invalid credentials. Try admin/admin123");
+            setError("Invalid credentials. Try admin/admin123 or user/user123");
             setLoading(false);
         } else {
             router.push("/");
@@ -51,6 +59,7 @@ export default function LoginPage() {
                     console.log("User accepted the install prompt");
                 }
                 setDeferredPrompt(null);
+                setShowInstallPrompt(false);
             });
         }
     };
@@ -122,14 +131,19 @@ export default function LoginPage() {
                         </NeonButton>
                     </form>
 
-                    <div className="mt-8 pt-6 border-t border-white/5 text-center">
-                        {deferredPrompt && (
-                            <div className="mb-4">
-                                <NeonButton size="sm" variant="success" onClick={handleInstallClick} className="w-full">
-                                    <Download className="w-4 h-4 mr-2" /> Install App
-                                </NeonButton>
-                            </div>
-                        )}
+                    <div className="mt-8 pt-6 border-t border-white/5 space-y-4">
+                        {/* PWA Install Button - Always show for Android/Desktop */}
+                        <NeonButton
+                            size="sm"
+                            variant="success"
+                            onClick={handleInstallClick}
+                            className="w-full"
+                            disabled={!showInstallPrompt}
+                        >
+                            <Smartphone className="w-4 h-4 mr-2" />
+                            {showInstallPrompt ? "Install App (PWA)" : "Already Installed"}
+                        </NeonButton>
+
                         <p className="text-white/20 text-xs flex items-center justify-center gap-1">
                             <Shield className="w-3 h-3" /> Encrypted Connection
                         </p>
