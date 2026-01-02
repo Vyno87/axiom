@@ -1,4 +1,5 @@
 .pio/build/esp32dev/src/main.cpp.o: src/main.cpp \
+ C:/Users/vynot/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/newlib/platform_include/time.h \
  .pio/libdeps/esp32dev/Adafruit\ Fingerprint\ Sensor\ Library/Adafruit_Fingerprint.h \
  C:/Users/vynot/.platformio/packages/framework-arduinoespressif32/cores/esp32/Arduino.h \
  C:/Users/vynot/.platformio/packages/framework-arduinoespressif32/cores/esp32/esp_arduino_version.h \
@@ -137,10 +138,7 @@
  .pio/libdeps/esp32dev/ArduinoJson/src/ArduinoJson.h \
  .pio/libdeps/esp32dev/ArduinoJson/src/ArduinoJson.hpp \
  .pio/libdeps/esp32dev/ArduinoJson/src/ArduinoJson/Configuration.hpp \
- C:/Users/vynot/.platformio/packages/framework-arduinoespressif32/libraries/HTTPClient/src/HTTPClient.h \
- C:/Users/vynot/.platformio/packages/framework-arduinoespressif32/libraries/WiFi/src/WiFiClient.h \
- C:/Users/vynot/.platformio/packages/framework-arduinoespressif32/cores/esp32/Client.h \
- C:/Users/vynot/.platformio/packages/framework-arduinoespressif32/libraries/WiFiClientSecure/src/WiFiClientSecure.h \
+ C:/Users/vynot/.platformio/packages/framework-arduinoespressif32/libraries/ArduinoOTA/src/ArduinoOTA.h \
  C:/Users/vynot/.platformio/packages/framework-arduinoespressif32/libraries/WiFi/src/WiFi.h \
  C:/Users/vynot/.platformio/packages/framework-arduinoespressif32/cores/esp32/Print.h \
  C:/Users/vynot/.platformio/packages/framework-arduinoespressif32/cores/esp32/IPv6Address.h \
@@ -195,11 +193,21 @@
  C:/Users/vynot/.platformio/packages/framework-arduinoespressif32/libraries/WiFi/src/WiFiAP.h \
  C:/Users/vynot/.platformio/packages/framework-arduinoespressif32/libraries/WiFi/src/WiFiScan.h \
  C:/Users/vynot/.platformio/packages/framework-arduinoespressif32/libraries/WiFi/src/WiFiClient.h \
+ C:/Users/vynot/.platformio/packages/framework-arduinoespressif32/cores/esp32/Client.h \
  C:/Users/vynot/.platformio/packages/framework-arduinoespressif32/libraries/WiFi/src/WiFiServer.h \
  C:/Users/vynot/.platformio/packages/framework-arduinoespressif32/cores/esp32/Server.h \
  C:/Users/vynot/.platformio/packages/framework-arduinoespressif32/libraries/WiFi/src/WiFiUdp.h \
  C:/Users/vynot/.platformio/packages/framework-arduinoespressif32/cores/esp32/Udp.h \
  C:/Users/vynot/.platformio/packages/framework-arduinoespressif32/cores/esp32/cbuf.h \
+ C:/Users/vynot/.platformio/packages/framework-arduinoespressif32/libraries/Update/src/Update.h \
+ C:/Users/vynot/.platformio/packages/framework-arduinoespressif32/cores/esp32/MD5Builder.h \
+ C:/Users/vynot/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/esp_rom/include/esp_rom_md5.h \
+ C:/Users/vynot/.platformio/packages/framework-arduinoespressif32/libraries/ESPmDNS/src/ESPmDNS.h \
+ C:/Users/vynot/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/mdns/include/mdns.h \
+ C:/Users/vynot/.platformio/packages/framework-arduinoespressif32/libraries/FS/src/FS.h \
+ C:/Users/vynot/.platformio/packages/framework-arduinoespressif32/libraries/HTTPClient/src/HTTPClient.h \
+ C:/Users/vynot/.platformio/packages/framework-arduinoespressif32/libraries/WiFi/src/WiFiClient.h \
+ C:/Users/vynot/.platformio/packages/framework-arduinoespressif32/libraries/WiFiClientSecure/src/WiFiClientSecure.h \
  C:/Users/vynot/.platformio/packages/framework-arduinoespressif32/libraries/WiFiClientSecure/src/ssl_client.h \
  C:/Users/vynot/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/mbedtls/mbedtls/include/mbedtls/platform.h \
  C:/Users/vynot/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/mbedtls/port/include/mbedtls/esp_config.h \
@@ -238,6 +246,7 @@
  C:/Users/vynot/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/mbedtls/port/include/aes/esp_aes.h \
  C:/Users/vynot/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/hal/include/hal/aes_types.h \
  C:/Users/vynot/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/mbedtls/mbedtls/include/mbedtls/error.h \
+ C:/Users/vynot/.platformio/packages/framework-arduinoespressif32/libraries/LittleFS/src/LittleFS.h \
  .pio/libdeps/esp32dev/RTClib/src/RTClib.h \
  .pio/libdeps/esp32dev/Adafruit\ BusIO/Adafruit_I2CDevice.h \
  C:/Users/vynot/.platformio/packages/framework-arduinoespressif32/libraries/Wire/src/Wire.h \
@@ -272,4 +281,5 @@
  .pio/libdeps/esp32dev/TFT_eSPI/Fonts/Font32rle.h \
  .pio/libdeps/esp32dev/TFT_eSPI/Fonts/Font32rle.c \
  .pio/libdeps/esp32dev/TFT_eSPI/Extensions/Button.h \
- .pio/libdeps/esp32dev/TFT_eSPI/Extensions/Sprite.h
+ .pio/libdeps/esp32dev/TFT_eSPI/Extensions/Sprite.h \
+ C:/Users/vynot/.platformio/packages/framework-arduinoespressif32/libraries/WiFi/src/WiFiUdp.h

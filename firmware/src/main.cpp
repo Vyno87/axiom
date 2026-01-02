@@ -1,429 +1,620 @@
+#include "time.h"
 #include <Adafruit_Fingerprint.h>
 #include <Arduino.h>
 #include <ArduinoJson.h>
+#include <ArduinoOTA.h>
+#include <ESPmDNS.h>
+#include <FS.h>
 #include <HTTPClient.h>
+#include <LittleFS.h>
 #include <RTClib.h>
 #include <TFT_eSPI.h>
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
+#include <WiFiUdp.h>
+#include <Wire.h>
 
-// ============ CONFIGURATION ============
-// WiFi Credentials
+// ================== KONFIGURASI ==================
 const char *WIFI_SSID = "realme GT Neo2 5G";
 const char *WIFI_PASSWORD = "Nyorean9";
-
-// API Configuration
 const char *API_URL = "https://axiom-pearl-six.vercel.app/api/ingest";
-const char *API_KEY =
-    "AxiomSecure_2026_Key"; // Matches HARDWARE_API_KEY in .env.local
+const char *API_KEY = "AxiomSecure_2026_Key";
+#define PIN_ADMIN "1212"
 
-// Hardware Serial for AS608 (TX2=GPIO17, RX2=GPIO16)
+// ================== PIN MAPPING ==================
+#define PIN_UP 33
+#define PIN_DOWN 32
+#define PIN_OK 27
+#define PIN_BUZZER 13
+#define LED_HIJAU 15 // Backlight TFT
+#define I2C_SDA 25
+#define I2C_SCL 26
+#define FP_RX 16
+#define FP_TX 17
+
+TFT_eSPI tft = TFT_eSPI();
+RTC_DS3231 rtc;
 HardwareSerial mySerial(2);
 Adafruit_Fingerprint finger = Adafruit_Fingerprint(&mySerial);
-
-// RTC (I2C: SDA=GPIO21, SCL=GPIO22)
-RTC_DS3231 rtc;
-
-// WiFi Client
 WiFiClientSecure client;
 
-// TFT Display using TFT_eSPI
-TFT_eSPI tft = TFT_eSPI();
+enum AppState { STANDBY, INPUT_PIN, MENU, ENROLL, DELETE };
+AppState state = STANDBY;
+bool isFirstEntry = true;
+bool sensorDetected = false;
 
-// Button Pins (updated to avoid RTC conflict)
-#define BTN_UP 33
-#define BTN_SELECT 32
-#define BTN_DOWN 27
+String statusAbsen[] = {"Check-In", "Check-Out", "Lembur"};
+int currentStatusIdx = 0;
+int menuIdx = 0;
+unsigned long lastActivity = 0;
+unsigned long lastScanTime = 0;
+bool isLcdOn = true;
+int lastFingerID = -1;
+unsigned long lastFingerTime = 0;
 
-// UI Colors (Dark Theme) - RGB565 format
-#define COLOR_BG 0x0000      // Black
-#define COLOR_PRIMARY 0x07FF // Cyan
-#define COLOR_SUCCESS 0x07E0 // Green
-#define COLOR_ERROR 0xF800   // Red
-#define COLOR_TEXT 0xFFFF    // White
-#define COLOR_GRAY 0x7BEF    // Light Gray
+// ================== PROTOTYPE ==================
+void runStandby();
+void runInputPin();
+void runMenu();
+void runEnroll();
+void runDelete();
+void changeState(AppState newState);
+void flashScreen(uint16_t warna, String msg, int id);
+void playBuzzer(int p);
+void wakeUpLcd();
+void updateRTCfromNTP();
+void sendDataToAPI(int id, String status);
+void syncOfflineData();
+bool waitFinger(uint8_t target, uint32_t timeout = 10000);
 
-// Menu State
-enum MenuState { MENU_MAIN, MENU_CHECKIN, MENU_CHECKOUT, MENU_ENROLL };
-MenuState currentMenu = MENU_MAIN;
-int menuSelection = 0;
-
-// ============ FUNCTION DECLARATIONS ============
-void connectWiFi();
-void reconnectWiFi();
-bool sendToAPI(int uid, String timestamp);
-int getFingerprintID();
-String getRTCTimestamp();
-void initDisplay();
-void showMainMenu();
-void showScanScreen(const char *title);
-void showProcessing();
-void showSuccess(const char *name);
-void showError(const char *message);
-void handleButtons();
-void drawCenteredText(const char *text, int y, uint16_t color, int size);
-void drawFingerIcon(int x, int y, uint16_t color);
-void drawCheckmark(int x, int y);
-void drawX(int x, int y);
-
-// ============ SETUP ============
+// ================== SETUP ==================
 void setup() {
   Serial.begin(115200);
-  delay(1000);
-  Serial.println("\n=== ESP32 Fingerprint Attendance System ===");
+  mySerial.begin(57600, SERIAL_8N1, FP_RX, FP_TX);
+  Wire.begin(I2C_SDA, I2C_SCL);
 
-  // Initialize TFT Display
-  initDisplay();
+  pinMode(PIN_UP, INPUT_PULLUP);
+  pinMode(PIN_DOWN, INPUT_PULLUP);
+  pinMode(PIN_OK, INPUT_PULLUP);
+  pinMode(PIN_BUZZER, OUTPUT);
+  pinMode(LED_HIJAU, OUTPUT);
+  digitalWrite(LED_HIJAU, HIGH);
 
-  // Initialize Buttons
-  pinMode(BTN_UP, INPUT_PULLUP);
-  pinMode(BTN_SELECT, INPUT_PULLUP);
-  pinMode(BTN_DOWN, INPUT_PULLUP);
-
-  // Initialize WiFi
-  drawCenteredText("Connecting WiFi...", 120, COLOR_PRIMARY, 2);
-  connectWiFi();
-
-  // Initialize AS608 Fingerprint Sensor
-  mySerial.begin(57600, SERIAL_8N1, 16, 17);
-  Serial.println("Initializing AS608 sensor...");
-
-  if (finger.verifyPassword()) {
-    Serial.println("✓ AS608 sensor found!");
-  } else {
-    Serial.println("✗ AS608 sensor not found!");
-    showError("Sensor Error");
-    while (1)
-      delay(1);
-  }
-
-  // Initialize DS3231 RTC
-  Serial.println("Initializing DS3231 RTC...");
-  if (!rtc.begin()) {
-    Serial.println("✗ RTC not found!");
-    showError("RTC Error");
-    while (1)
-      delay(1);
-  }
-
-  if (rtc.lostPower()) {
-    Serial.println("! RTC lost power, setting time...");
-    rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
-  }
-
-  Serial.println("✓ System Ready!");
-  showMainMenu();
-}
-
-// ============ MAIN LOOP ============
-void loop() {
-  // Check WiFi connection
-  if (WiFi.status() != WL_CONNECTED) {
-    reconnectWiFi();
-  }
-
-  // Handle button navigation
-  handleButtons();
-
-  delay(50);
-}
-
-// ============ DISPLAY FUNCTIONS ============
-void initDisplay() {
   tft.init();
-  tft.setRotation(0); // Portrait mode
-  tft.fillScreen(COLOR_BG);
-  tft.setTextColor(COLOR_TEXT);
+  tft.setRotation(0);
+  tft.fillScreen(TFT_BLACK);
+  tft.setTextColor(TFT_CYAN);
+  tft.setTextDatum(MC_DATUM);
+  tft.drawString("AXIOM BOOTING", 120, 80, 4);
 
-  drawCenteredText("AXIOM", 80, COLOR_PRIMARY, 3);
-  drawCenteredText("Initializing...", 120, COLOR_TEXT, 2);
-  delay(1500);
-}
+  LittleFS.begin(true);
+  rtc.begin();
 
-void showMainMenu() {
-  currentMenu = MENU_MAIN;
-  tft.fillScreen(COLOR_BG);
-
-  drawCenteredText("MAIN MENU", 20, COLOR_PRIMARY, 2);
-
-  // Menu items
-  tft.setTextSize(2);
-  tft.setTextColor(menuSelection == 0 ? COLOR_PRIMARY : COLOR_GRAY);
-  tft.setCursor(40, 80);
-  tft.print(menuSelection == 0 ? "> " : "  ");
-  tft.print("Check-in");
-
-  tft.setTextColor(menuSelection == 1 ? COLOR_PRIMARY : COLOR_GRAY);
-  tft.setCursor(40, 110);
-  tft.print(menuSelection == 1 ? "> " : "  ");
-  tft.print("Check-out");
-
-  tft.setTextColor(menuSelection == 2 ? COLOR_PRIMARY : COLOR_GRAY);
-  tft.setCursor(40, 140);
-  tft.print(menuSelection == 2 ? "> " : "  ");
-  tft.print("Enroll New");
-
-  tft.setTextSize(1);
-  tft.setTextColor(COLOR_GRAY);
-  tft.setCursor(30, 210);
-  tft.print("UP/DOWN: Navigate");
-  tft.setCursor(30, 225);
-  tft.print("SELECT: Confirm");
-}
-
-void showScanScreen(const char *title) {
-  tft.fillScreen(COLOR_BG);
-  drawCenteredText(title, 20, COLOR_PRIMARY, 2);
-  drawFingerIcon(95, 80, COLOR_PRIMARY);
-  drawCenteredText("Place Finger", 180, COLOR_TEXT, 2);
-
-  // Wait for fingerprint
-  Serial.println("Waiting for fingerprint...");
-
-  while (true) {
-    int fingerprintID = getFingerprintID();
-
-    if (fingerprintID > 0) {
-      showProcessing();
-      delay(500);
-
-      String timestamp = getRTCTimestamp();
-      bool success = sendToAPI(fingerprintID, timestamp);
-
-      if (success) {
-        showSuccess("Access Granted");
-      } else {
-        showError("API Error");
-      }
-
-      delay(2000);
-      showMainMenu();
-      return;
-    } else if (fingerprintID == 0) {
-      showError("Unknown Finger");
-      delay(2000);
-      showMainMenu();
-      return;
-    }
-
-    // Check for back button
-    if (digitalRead(BTN_SELECT) == LOW) {
-      delay(200);
-      showMainMenu();
-      return;
-    }
-
-    delay(50);
+  // Cek Sensor
+  if (finger.verifyPassword()) {
+    sensorDetected = true;
+    tft.setTextColor(TFT_GREEN);
+    tft.drawString("SENSOR OK!", 120, 120, 2);
+  } else {
+    sensorDetected = false;
+    tft.setTextColor(TFT_RED);
+    tft.drawString("SENSOR ERROR!", 120, 120, 2);
+    playBuzzer(2);
   }
-}
+  delay(1000);
 
-void showProcessing() {
-  tft.fillScreen(COLOR_BG);
-  drawCenteredText("PROCESSING", 100, COLOR_PRIMARY, 2);
-
-  // Simple spinner animation
-  for (int i = 0; i < 8; i++) {
-    tft.fillCircle(120, 140 + i * 2, 3, COLOR_PRIMARY);
-    delay(50);
-  }
-}
-
-void showSuccess(const char *name) {
-  tft.fillScreen(COLOR_BG);
-  drawCheckmark(95, 70);
-  drawCenteredText("SUCCESS", 150, COLOR_SUCCESS, 3);
-  drawCenteredText(name, 190, COLOR_TEXT, 2);
-}
-
-void showError(const char *message) {
-  tft.fillScreen(COLOR_BG);
-  drawX(95, 70);
-  drawCenteredText("ERROR", 150, COLOR_ERROR, 3);
-  drawCenteredText(message, 190, COLOR_TEXT, 2);
-}
-
-void drawCenteredText(const char *text, int y, uint16_t color, int size) {
-  tft.setTextSize(size);
-  tft.setTextColor(color);
-
-  int16_t x1, y1;
-  uint16_t w, h;
-  tft.setTextDatum(TC_DATUM); // Top Center
-  tft.drawString(text, tft.width() / 2, y);
-  tft.setTextDatum(TL_DATUM); // Reset to Top Left
-}
-
-void drawFingerIcon(int x, int y, uint16_t color) {
-  // Simple fingerprint icon
-  tft.fillRoundRect(x, y, 50, 70, 10, color);
-  tft.fillRect(x + 10, y + 10, 30, 50, COLOR_BG);
-
-  // Fingerprint lines
-  for (int i = 0; i < 4; i++) {
-    tft.drawLine(x + 15, y + 20 + i * 10, x + 35, y + 20 + i * 10, color);
-  }
-}
-
-void drawCheckmark(int x, int y) {
-  tft.fillCircle(x + 25, y + 25, 40, COLOR_SUCCESS);
-  tft.drawLine(x + 10, y + 25, x + 20, y + 40, COLOR_BG);
-  tft.drawLine(x + 20, y + 40, x + 45, y + 10, COLOR_BG);
-  // Thicker lines
-  tft.drawLine(x + 11, y + 25, x + 21, y + 40, COLOR_BG);
-  tft.drawLine(x + 21, y + 40, x + 46, y + 10, COLOR_BG);
-}
-
-void drawX(int x, int y) {
-  tft.fillCircle(x + 25, y + 25, 40, COLOR_ERROR);
-  tft.drawLine(x + 10, y + 10, x + 40, y + 40, COLOR_BG);
-  tft.drawLine(x + 40, y + 10, x + 10, y + 40, COLOR_BG);
-  // Thicker lines
-  tft.drawLine(x + 11, y + 10, x + 41, y + 40, COLOR_BG);
-  tft.drawLine(x + 41, y + 10, x + 11, y + 40, COLOR_BG);
-}
-
-// ============ BUTTON HANDLER ============
-void handleButtons() {
-  static unsigned long lastPress = 0;
-  unsigned long now = millis();
-
-  if (now - lastPress < 200)
-    return; // Debounce
-
-  if (currentMenu == MENU_MAIN) {
-    if (digitalRead(BTN_UP) == LOW) {
-      menuSelection = (menuSelection - 1 + 3) % 3;
-      showMainMenu();
-      lastPress = now;
-    } else if (digitalRead(BTN_DOWN) == LOW) {
-      menuSelection = (menuSelection + 1) % 3;
-      showMainMenu();
-      lastPress = now;
-    } else if (digitalRead(BTN_SELECT) == LOW) {
-      lastPress = now;
-
-      switch (menuSelection) {
-      case 0:
-        showScanScreen("CHECK-IN");
-        break;
-      case 1:
-        showScanScreen("CHECK-OUT");
-        break;
-      case 2:
-        tft.fillScreen(COLOR_BG);
-        drawCenteredText("ENROLL", 100, COLOR_PRIMARY, 2);
-        drawCenteredText("Not Implemented", 140, COLOR_GRAY, 2);
-        delay(2000);
-        showMainMenu();
-        break;
-      }
-    }
-  }
-}
-
-// ============ WIFI FUNCTIONS ============
-void connectWiFi() {
-  Serial.print("Connecting to WiFi: ");
-  Serial.println(WIFI_SSID);
+  // WiFi
+  tft.fillRect(0, 150, 240, 50, TFT_BLACK);
+  tft.setTextColor(TFT_WHITE);
+  tft.drawString("WiFi: CONNECTING...", 120, 170, 2);
 
   WiFi.mode(WIFI_STA);
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-
-  int attempts = 0;
-  while (WiFi.status() != WL_CONNECTED && attempts < 20) {
+  unsigned long startWiFi = millis();
+  while (WiFi.status() != WL_CONNECTED && millis() - startWiFi < 8000) {
     delay(500);
     Serial.print(".");
-    attempts++;
   }
 
   if (WiFi.status() == WL_CONNECTED) {
-    Serial.println("\n✓ WiFi connected!");
-    Serial.print("IP Address: ");
-    Serial.println(WiFi.localIP());
+    tft.fillRect(0, 150, 240, 50, TFT_BLACK);
+    tft.setTextColor(TFT_GREEN);
+    tft.drawString("CONNECTED!", 120, 170, 2);
+
+    // Setup OTA
+    ArduinoOTA.setHostname("axiom-esp32");
+    ArduinoOTA.setPassword("admin"); // Password untuk upload OTA
+
+    ArduinoOTA.onStart([]() {
+      String type =
+          (ArduinoOTA.getCommand() == U_FLASH) ? "sketch" : "filesystem";
+      tft.fillScreen(TFT_BLACK);
+      tft.setTextColor(TFT_YELLOW);
+      tft.drawString("UPDATING...", 120, 120, 4);
+    });
+
+    ArduinoOTA.onEnd([]() {
+      tft.fillScreen(TFT_BLACK);
+      tft.setTextColor(TFT_GREEN);
+      tft.drawString("UPDATE SUKSES", 120, 120, 4);
+      delay(1000);
+    });
+
+    ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
+      tft.fillRect(20, 140, 200, 20, TFT_BLACK);
+      int barWidth = (progress / (total / 100)) * 2;
+      tft.drawRect(20, 140, 200, 20, TFT_WHITE);
+      tft.fillRect(20, 140, barWidth, 20, TFT_GREEN);
+    });
+
+    ArduinoOTA.onError([](ota_error_t error) {
+      tft.fillScreen(TFT_BLACK);
+      tft.setTextColor(TFT_RED);
+      tft.drawString("UPDATE GAGAL", 120, 120, 4);
+      delay(2000);
+    });
+
+    ArduinoOTA.begin();
+
+    tft.setTextColor(TFT_YELLOW);
+    tft.drawString("Syncing Time...", 120, 195, 2);
+    updateRTCfromNTP();
+    delay(1000);
   } else {
-    Serial.println("\n✗ WiFi connection failed!");
+    tft.fillRect(0, 150, 240, 50, TFT_BLACK);
+    tft.setTextColor(TFT_RED);
+    tft.drawString("OFFLINE MODE", 120, 170, 2);
+    delay(1500);
   }
+
+  client.setInsecure();
+  changeState(STANDBY);
 }
 
-void reconnectWiFi() {
-  Serial.println("WiFi disconnected. Reconnecting...");
-  WiFi.disconnect();
-  delay(100);
-  connectWiFi();
-}
-
-// ============ FINGERPRINT FUNCTIONS ============
-int getFingerprintID() {
-  uint8_t p = finger.getImage();
-
-  if (p != FINGERPRINT_OK)
-    return -1;
-
-  p = finger.image2Tz();
-  if (p != FINGERPRINT_OK)
-    return -1;
-
-  p = finger.fingerSearch();
-  if (p == FINGERPRINT_OK) {
-    return finger.fingerID;
-  } else if (p == FINGERPRINT_NOTFOUND) {
-    return 0; // No match
-  } else {
-    return -1;
+// ================== LOOP ==================
+void loop() {
+  if (WiFi.status() == WL_CONNECTED) {
+    ArduinoOTA.handle();
   }
+
+  // Backlight timeout 5 menit
+  if (millis() - lastActivity > 300000 && isLcdOn) {
+    digitalWrite(LED_HIJAU, LOW);
+    isLcdOn = false;
+  }
+
+  if (!digitalRead(PIN_UP) || !digitalRead(PIN_DOWN) || !digitalRead(PIN_OK)) {
+    if (!isLcdOn)
+      wakeUpLcd();
+    lastActivity = millis();
+  }
+
+  // Long press UP = sync offline
+  if (state == STANDBY && !digitalRead(PIN_UP)) {
+    uint32_t t = millis();
+    while (!digitalRead(PIN_UP))
+      ;
+    if (millis() - t > 3000)
+      syncOfflineData();
+  }
+
+  switch (state) {
+  case STANDBY:
+    runStandby();
+    break;
+  case INPUT_PIN:
+    runInputPin();
+    break;
+  case MENU:
+    runMenu();
+    break;
+  case ENROLL:
+    runEnroll();
+    break;
+  case DELETE:
+    runDelete();
+    break;
+  }
+  yield();
 }
 
-// ============ RTC FUNCTIONS ============
-String getRTCTimestamp() {
+// ================== STANDBY MODE ==================
+void runStandby() {
   DateTime now = rtc.now();
+  static int lastSec = -1, lastMin = -1, lastStatus = -1, lastWifi = -1;
 
-  char buffer[25];
-  sprintf(buffer, "%04d-%02d-%02dT%02d:%02d:%02d.000Z", now.year(), now.month(),
-          now.day(), now.hour(), now.minute(), now.second());
+  if (isFirstEntry) {
+    tft.fillScreen(TFT_BLACK);
+    tft.fillRect(0, 0, 240, 50, 0x2104);
+    tft.fillRoundRect(5, 5, 40, 40, 8, TFT_CYAN);
+    tft.setTextColor(TFT_WHITE);
+    tft.setCursor(12, 18);
+    tft.setTextSize(2);
+    tft.print("AX");
+    tft.setTextSize(1);
+    tft.setTextDatum(MC_DATUM);
+    tft.drawString("AXIOM ID", 140, 25, 2);
+    isFirstEntry = false;
+    lastSec = -1;
+    lastMin = -1;
+    lastStatus = -1;
+    lastWifi = -1;
+  }
 
-  return String(buffer);
+  // Jam Besar & Detik
+  if (now.minute() != lastMin) {
+    tft.fillRect(5, 55, 200, 90, TFT_BLACK);
+    char hmBuf[6];
+    sprintf(hmBuf, "%02d:%02d", now.hour(), now.minute());
+    tft.setTextColor(0x07FF, TFT_BLACK);
+    tft.setTextDatum(MC_DATUM);
+    tft.setTextSize(3);                 // Manual size scaling
+    tft.drawString(hmBuf, 105, 100, 4); // Font 4 with size 3
+    tft.setTextSize(1);                 // Reset
+    lastMin = now.minute();
+  }
+  if (now.second() != lastSec) {
+    tft.fillRect(5, 120, 200, 25, TFT_BLACK);
+    char secBuf[4];
+    sprintf(secBuf, ":%02d", now.second());
+    tft.setTextColor(TFT_CYAN, TFT_BLACK);
+    tft.setTextDatum(MC_DATUM);
+    tft.drawString(secBuf, 120, 132, 2); // Smaller font for seconds
+    lastSec = now.second();
+  }
+
+  // Status Box
+  if (currentStatusIdx != lastStatus) {
+    tft.fillRoundRect(5, 150, 230, 50, 10, 0x5DFF);
+    tft.setTextColor(TFT_WHITE, 0x5DFF);
+    tft.setTextDatum(MC_DATUM);
+    tft.drawString(statusAbsen[currentStatusIdx], 120, 175, 4);
+
+    tft.fillRect(0, 202, 240, 12, TFT_BLACK);
+    if (!sensorDetected) {
+      tft.setTextColor(TFT_RED, TFT_BLACK);
+      tft.drawString("-- SENSOR ERROR --", 120, 208, 1);
+    }
+    lastStatus = currentStatusIdx;
+  }
+
+  // WiFi Status
+  int currentWifi = (WiFi.status() == WL_CONNECTED) ? 1 : 0;
+  if (currentWifi != lastWifi) {
+    tft.fillRect(0, 215, 240, 25, TFT_BLACK);
+    tft.setTextDatum(BL_DATUM);
+    if (currentWifi) {
+      tft.setTextColor(TFT_YELLOW, TFT_BLACK);
+      tft.drawString(WiFi.localIP().toString(), 5, 235, 2);
+    } else {
+      tft.setTextColor(TFT_DARKGREY, TFT_BLACK);
+      tft.drawString("no-ip", 5, 235, 2);
+    }
+    tft.setTextDatum(BR_DATUM);
+    tft.setTextColor(currentWifi ? TFT_GREEN : TFT_RED, TFT_BLACK);
+    tft.drawString(currentWifi ? "ONLINE" : "OFFLINE", 235, 235, 2);
+    lastWifi = currentWifi;
+  }
+
+  // Scan Fingerprint
+  if (sensorDetected && (millis() - lastScanTime > 200)) {
+    lastScanTime = millis();
+    if (finger.getImage() == FINGERPRINT_OK) {
+      playBuzzer(1);
+      tft.fillRoundRect(5, 150, 230, 50, 10, TFT_YELLOW);
+      tft.setTextColor(TFT_BLACK, TFT_YELLOW);
+      tft.setTextDatum(MC_DATUM);
+      tft.drawString("MEMINDAI...", 120, 175, 4);
+
+      if (finger.image2Tz() == FINGERPRINT_OK) {
+        if (finger.fingerFastSearch() == FINGERPRINT_OK) {
+          if (finger.fingerID == lastFingerID &&
+              millis() - lastFingerTime < 60000) {
+            flashScreen(TFT_YELLOW, "SUDAH ABSEN", finger.fingerID);
+          } else {
+            lastFingerID = finger.fingerID;
+            lastFingerTime = millis();
+            flashScreen(TFT_GREEN, "BERHASIL", finger.fingerID);
+            sendDataToAPI(finger.fingerID, statusAbsen[currentStatusIdx]);
+          }
+        } else {
+          playBuzzer(2);
+          flashScreen(TFT_RED, "JARI ASING", 0);
+        }
+      }
+      changeState(STANDBY);
+    }
+  }
+
+  // Navigation
+  if (!digitalRead(PIN_UP)) {
+    currentStatusIdx = (currentStatusIdx + 2) % 3;
+    delay(200);
+  }
+  if (!digitalRead(PIN_DOWN)) {
+    currentStatusIdx = (currentStatusIdx + 1) % 3;
+    delay(200);
+  }
+  if (!digitalRead(PIN_OK)) {
+    changeState(INPUT_PIN);
+    delay(200);
+  }
 }
 
-// ============ API FUNCTIONS ============
-bool sendToAPI(int uid, String timestamp) {
-  if (WiFi.status() != WL_CONNECTED) {
-    Serial.println("✗ WiFi not connected");
-    return false;
-  }
+// ================== SEND TO VERCEL API ==================
+void sendDataToAPI(int id, String status) {
+  // Get timestamp from RTC
+  DateTime now = rtc.now();
+  char timestamp[25];
+  sprintf(timestamp, "%04d-%02d-%02dT%02d:%02d:%02d.000Z", now.year(),
+          now.month(), now.day(), now.hour(), now.minute(), now.second());
 
-  HTTPClient https;
+  String dataKirim = String(id) + "," + String(timestamp) + "," + status;
 
-  https.begin(client, API_URL);
-  https.addHeader("Content-Type", "application/json");
-  https.addHeader("x-api-key", API_KEY);
+  if (WiFi.status() == WL_CONNECTED) {
+    HTTPClient https;
+    https.begin(client, API_URL);
+    https.addHeader("Content-Type", "application/json");
+    https.addHeader("x-api-key", API_KEY);
 
-  JsonDocument doc;
-  doc["uid"] = uid;
-  doc["timestamp"] = timestamp;
+    JsonDocument doc;
+    doc["uid"] = id;
+    doc["timestamp"] = String(timestamp);
 
-  String jsonPayload;
-  serializeJson(doc, jsonPayload);
+    String jsonPayload;
+    serializeJson(doc, jsonPayload);
 
-  Serial.print("Payload: ");
-  Serial.println(jsonPayload);
-
-  int httpResponseCode = https.POST(jsonPayload);
-
-  bool success = false;
-  if (httpResponseCode > 0) {
-    Serial.print("HTTP Response code: ");
-    Serial.println(httpResponseCode);
-
-    String response = https.getString();
-    Serial.print("Response: ");
-    Serial.println(response);
-
-    success = (httpResponseCode == 200);
+    int httpCode = https.POST(jsonPayload);
+    Serial.printf("HTTP Response: %d\n", httpCode);
+    https.end();
   } else {
-    Serial.print("✗ Error code: ");
-    Serial.println(httpResponseCode);
+    // Offline mode - save to LittleFS
+    fs::File f = LittleFS.open("/offline.txt", FILE_APPEND);
+    if (f) {
+      f.println(dataKirim);
+      f.close();
+    }
   }
+}
 
-  https.end();
-  return success;
+// ================== HELPER FUNCTIONS ==================
+void updateRTCfromNTP() {
+  configTime(25200, 0, "id.pool.ntp.org", "pool.ntp.org");
+  struct tm t;
+  if (getLocalTime(&t, 5000)) {
+    rtc.adjust(DateTime(t.tm_year + 1900, t.tm_mon + 1, t.tm_mday, t.tm_hour,
+                        t.tm_min, t.tm_sec));
+  }
+}
+
+void flashScreen(uint16_t warna, String msg, int id) {
+  tft.fillScreen(warna);
+  tft.setTextColor(TFT_BLACK);
+  tft.setTextDatum(MC_DATUM);
+  tft.drawString(msg, 120, 100, 4);
+  if (id > 0)
+    tft.drawString("ID " + String(id), 120, 145, 2);
+  delay(1500);
+}
+
+void syncOfflineData() {
+  if (WiFi.status() != WL_CONNECTED) {
+    flashScreen(TFT_RED, "OFFLINE", 0);
+    changeState(STANDBY);
+    return;
+  }
+  tft.fillScreen(TFT_BLACK);
+  tft.drawString("SINKRONISASI...", 120, 120, 2);
+
+  fs::File f = LittleFS.open("/offline.txt", FILE_READ);
+  if (f) {
+    HTTPClient https;
+    https.begin(client, API_URL);
+    https.addHeader("Content-Type", "application/json");
+    https.addHeader("x-api-key", API_KEY);
+
+    while (f.available()) {
+      String line = f.readStringUntil('\n');
+      int idx1 = line.indexOf(',');
+      int idx2 = line.indexOf(',', idx1 + 1);
+
+      if (idx1 > 0 && idx2 > 0) {
+        int uid = line.substring(0, idx1).toInt();
+        String timestamp = line.substring(idx1 + 1, idx2);
+
+        JsonDocument doc;
+        doc["uid"] = uid;
+        doc["timestamp"] = timestamp;
+
+        String payload;
+        serializeJson(doc, payload);
+        https.POST(payload);
+        delay(100);
+      }
+      yield();
+    }
+    https.end();
+    f.close();
+    LittleFS.remove("/offline.txt");
+    flashScreen(TFT_GREEN, "SYNC OK", 0);
+  }
+  changeState(STANDBY);
+}
+
+void playBuzzer(int p) {
+  digitalWrite(PIN_BUZZER, HIGH);
+  delay(p == 1 ? 150 : 300);
+  digitalWrite(PIN_BUZZER, LOW);
+}
+
+void wakeUpLcd() {
+  lastActivity = millis();
+  digitalWrite(LED_HIJAU, HIGH);
+  isLcdOn = true;
+  delay(200);
+}
+
+void changeState(AppState newState) {
+  state = newState;
+  isFirstEntry = true;
+}
+
+void runInputPin() {
+  static String enteredPin = "";
+  static int curDigit = 0;
+  if (isFirstEntry) {
+    tft.fillScreen(TFT_BLACK);
+    tft.setTextColor(TFT_WHITE);
+    tft.setTextDatum(MC_DATUM);
+    tft.drawString("PIN ADMIN", 120, 40, 2);
+    isFirstEntry = false;
+  }
+  tft.fillRect(60, 100, 120, 40, TFT_BLACK);
+  String disp = "";
+  for (int i = 0; i < 4; i++)
+    disp += (i < (int)enteredPin.length()) ? "*" : "-";
+  tft.drawString(disp, 120, 115, 4);
+  tft.fillRect(80, 170, 80, 30, TFT_BLACK);
+  tft.drawString("Digit: " + String(curDigit), 120, 185, 2);
+
+  if (!digitalRead(PIN_UP)) {
+    curDigit = (curDigit + 1) % 10;
+    delay(200);
+  }
+  if (!digitalRead(PIN_DOWN)) {
+    curDigit = (curDigit + 9) % 10;
+    delay(200);
+  }
+  if (!digitalRead(PIN_OK)) {
+    enteredPin += String(curDigit);
+    curDigit = 0;
+    delay(250);
+    if (enteredPin.length() == 4) {
+      if (enteredPin == PIN_ADMIN)
+        changeState(MENU);
+      else {
+        flashScreen(TFT_RED, "SALAH", 0);
+        changeState(STANDBY);
+      }
+      enteredPin = "";
+    }
+  }
+}
+
+void runMenu() {
+  if (isFirstEntry) {
+    tft.fillScreen(TFT_BLACK);
+    isFirstEntry = false;
+  }
+  String items[] = {"DAFTAR JARI", "HAPUS JARI", "KEMBALI"};
+  for (int i = 0; i < 3; i++) {
+    tft.fillRoundRect(15, 70 + (i * 50), 210, 40, 8,
+                      (i == menuIdx) ? 0x5DFF : 0x2104);
+    tft.setTextColor(TFT_WHITE);
+    tft.drawString(items[i], 120, 90 + (i * 50), 2);
+  }
+  if (!digitalRead(PIN_UP)) {
+    menuIdx = (menuIdx + 2) % 3;
+    delay(200);
+  }
+  if (!digitalRead(PIN_DOWN)) {
+    menuIdx = (menuIdx + 1) % 3;
+    delay(200);
+  }
+  if (!digitalRead(PIN_OK)) {
+    delay(250);
+    if (menuIdx == 0)
+      changeState(ENROLL);
+    else if (menuIdx == 1)
+      changeState(DELETE);
+    else
+      changeState(STANDBY);
+  }
+}
+
+void runEnroll() {
+  if (!sensorDetected) {
+    flashScreen(TFT_RED, "NO SENSOR", 0);
+    changeState(MENU);
+    return;
+  }
+  static int id = 1;
+  if (isFirstEntry) {
+    tft.fillScreen(TFT_BLACK);
+    tft.drawString("SET ID: " + String(id), 120, 80, 2);
+    isFirstEntry = false;
+  }
+  if (!digitalRead(PIN_UP)) {
+    id++;
+    tft.fillRect(110, 70, 60, 30, TFT_BLACK);
+    tft.drawString(String(id), 130, 80, 2);
+    delay(200);
+  }
+  if (!digitalRead(PIN_DOWN) && id > 1) {
+    id--;
+    tft.fillRect(110, 70, 60, 30, TFT_BLACK);
+    tft.drawString(String(id), 130, 80, 2);
+    delay(200);
+  }
+  if (!digitalRead(PIN_OK)) {
+    tft.fillScreen(TFT_BLACK);
+    tft.drawString("Tempel Jari", 120, 120, 2);
+    if (waitFinger(FINGERPRINT_OK)) {
+      finger.image2Tz(1);
+      delay(1000);
+      tft.fillScreen(TFT_BLACK);
+      tft.drawString("Tempel Lagi", 120, 120, 2);
+      if (waitFinger(FINGERPRINT_OK)) {
+        finger.image2Tz(2);
+        if (finger.createModel() == FINGERPRINT_OK &&
+            finger.storeModel(id) == FINGERPRINT_OK)
+          flashScreen(TFT_GREEN, "SUKSES", id);
+        else
+          flashScreen(TFT_RED, "GAGAL", 0);
+      }
+    }
+    changeState(MENU);
+  }
+}
+
+void runDelete() {
+  if (!sensorDetected) {
+    flashScreen(TFT_RED, "NO SENSOR", 0);
+    changeState(MENU);
+    return;
+  }
+  static int id = 1;
+  if (isFirstEntry) {
+    tft.fillScreen(TFT_BLACK);
+    tft.drawString("HAPUS ID: " + String(id), 120, 100, 2);
+    isFirstEntry = false;
+  }
+  if (!digitalRead(PIN_UP)) {
+    id++;
+    tft.fillRect(110, 90, 60, 30, TFT_BLACK);
+    tft.drawString(String(id), 130, 100, 2);
+    delay(200);
+  }
+  if (!digitalRead(PIN_DOWN) && id > 1) {
+    id--;
+    tft.fillRect(110, 90, 60, 30, TFT_BLACK);
+    tft.drawString(String(id), 130, 100, 2);
+    delay(200);
+  }
+  if (!digitalRead(PIN_OK)) {
+    if (finger.deleteModel(id) == FINGERPRINT_OK)
+      flashScreen(TFT_RED, "TERHAPUS", id);
+    changeState(MENU);
+  }
+}
+
+bool waitFinger(uint8_t target, uint32_t timeout) {
+  uint32_t start = millis();
+  while (millis() - start < timeout) {
+    if (finger.getImage() == target)
+      return true;
+    delay(50);
+    yield();
+  }
+  return false;
 }
