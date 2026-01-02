@@ -7,14 +7,13 @@
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
 
-
 // ============ CONFIGURATION ============
 // WiFi Credentials
 const char *WIFI_SSID = "realme GT Neo2 5G";
 const char *WIFI_PASSWORD = "Nyorean9";
 
 // API Configuration
-const char *API_URL = "https://safira.my.id/api/ingest";
+const char *API_URL = "https://axiom-pearl-six.vercel.app/api/ingest";
 const char *API_KEY =
     "AxiomSecure_2026_Key"; // Matches HARDWARE_API_KEY in .env.local
 
