@@ -1,5 +1,7 @@
 import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
+import dbConnect from "@/lib/mongodb";
+import User from "@/models/User";
 
 export const authOptions: NextAuthOptions = {
     providers: [
@@ -10,23 +12,34 @@ export const authOptions: NextAuthOptions = {
                 password: { label: "Password", type: "password" }
             },
             async authorize(credentials) {
-                // Hardcoded Admin for now (replace with DB logic later if needed)
-                if (
-                    credentials?.username === "admin" &&
-                    credentials?.password === "admin123"
-                ) {
-                    return { id: "1", name: "Admin System", email: "admin@axiom.id", role: "admin" };
+                if (!credentials?.username || !credentials?.password) {
+                    return null;
                 }
 
-                // Demo User
-                if (
-                    credentials?.username === "user" &&
-                    credentials?.password === "user123"
-                ) {
-                    return { id: "2", name: "Demo Employee", email: "user@axiom.id", role: "user" };
-                }
+                try {
+                    await dbConnect();
 
-                return null;
+                    // Find user in database
+                    const user = await User.findOne({
+                        username: credentials.username,
+                        isActive: true
+                    });
+
+                    // Verify password (In production, use bcrypt.compare())
+                    if (user && user.password === credentials.password) {
+                        return {
+                            id: user._id.toString(),
+                            name: user.name,
+                            email: user.email || "",
+                            role: user.role,
+                        };
+                    }
+
+                    return null;
+                } catch (error) {
+                    console.error("Auth error:", error);
+                    return null;
+                }
             }
         })
     ],
