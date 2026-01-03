@@ -79,52 +79,16 @@ export default function LoginPage() {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-black relative overflow-hidden">
-            {/* Background Gradients */}
-            {/* Animated Neon Background */}
+        <div className="min-h-screen flex flex-col items-center justify-center bg-black relative overflow-hidden px-4">
+            {/* Background Gradients - Nuansa Neon */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                <motion.div
-                    animate={{
-                        scale: [1, 1.2, 1],
-                        opacity: [0.3, 0.5, 0.3],
-                        rotate: [0, 90, 0]
-                    }}
-                    transition={{
-                        duration: 10,
-                        repeat: Infinity,
-                        ease: "easeInOut"
-                    }}
-                    className="absolute -top-[20%] -left-[10%] w-[70vh] h-[70vh] bg-cyan-500/20 rounded-full blur-[120px]"
-                />
-                <motion.div
-                    animate={{
-                        scale: [1, 1.1, 1],
-                        opacity: [0.2, 0.4, 0.2],
-                        rotate: [0, -45, 0]
-                    }}
-                    transition={{
-                        duration: 8,
-                        repeat: Infinity,
-                        ease: "easeInOut",
-                        delay: 1
-                    }}
-                    className="absolute top-[40%] right-[-20%] w-[60vh] h-[60vh] bg-purple-500/20 rounded-full blur-[100px]"
-                />
-                <motion.div
-                    animate={{
-                        y: [0, -50, 0],
-                        opacity: [0.1, 0.3, 0.1]
-                    }}
-                    transition={{
-                        duration: 15,
-                        repeat: Infinity,
-                        ease: "easeInOut"
-                    }}
-                    className="absolute bottom-[-10%] left-[20%] w-[50vh] h-[50vh] bg-blue-500/10 rounded-full blur-[100px]"
-                />
+                {/* Core Neon Glows */}
+                <div className="absolute top-[-10%] left-[-5%] w-[80vh] h-[80vh] bg-cyan-500/10 rounded-full blur-[120px] animate-float-neon" />
+                <div className="absolute bottom-[-10%] right-[-5%] w-[70vh] h-[70vh] bg-purple-600/10 rounded-full blur-[100px] animate-float-neon-delayed" />
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[60vh] h-[60vh] bg-blue-500/5 rounded-full blur-[150px] animate-float-neon-slow" />
 
                 {/* Grid Overlay for Tech Feel */}
-                <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-[0.03] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))]" />
+                <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-[0.05] bg-center [mask-image:radial-gradient(ellipse_at_center,black,transparent_70%)]" />
             </div>
 
             {/* Language Switcher - Absolute Top Right */}
@@ -148,41 +112,47 @@ export default function LoginPage() {
             </div>
 
             <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="w-full max-w-md p-4 relative z-10"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, ease: "easeOut" }}
+                className="w-full max-w-md relative z-10"
             >
-                <GlassCard className="p-8">
+                <GlassCard className="p-8 border-white/10 shadow-[0_0_50px_rgba(6,182,212,0.1)]">
                     <div className="text-center mb-8">
-                        <div className="w-16 h-16 bg-gradient-to-br from-cyan-500/20 to-purple-500/20 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-white/10">
+                        <motion.div
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            transition={{ type: "spring", stiffness: 260, damping: 20, delay: 0.2 }}
+                            className="w-16 h-16 bg-gradient-to-br from-cyan-500/20 to-purple-500/20 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-white/10 shadow-lg"
+                        >
                             <Fingerprint className="w-8 h-8 text-cyan-400" />
-                        </div>
+                        </motion.div>
                         <h1 className="text-2xl font-bold text-white tracking-tight">AXIOM IDENTITY</h1>
                         <p className="text-white/40 text-sm mt-1">{t("loginSubtitle")}</p>
                     </div>
 
                     <form onSubmit={handleLogin} className="space-y-4">
                         <div className="space-y-2">
-                            <div className="relative">
-                                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
+                            <div className="relative group">
+                                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40 group-focus-within:text-cyan-400 transition-colors" />
                                 <input
                                     type="text"
                                     placeholder={t("usernameLabel")}
                                     value={username}
                                     onChange={(e) => setUsername(e.target.value)}
-                                    className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-3 text-white focus:outline-none focus:border-cyan-500/50 transition-colors"
+                                    className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-3 text-white focus:outline-none focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/20 transition-all"
                                 />
                             </div>
                         </div>
                         <div className="space-y-2">
-                            <div className="relative">
-                                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
+                            <div className="relative group">
+                                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40 group-focus-within:text-cyan-400 transition-colors" />
                                 <input
                                     type="password"
                                     placeholder={t("passwordLabel")}
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
-                                    className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-3 text-white focus:outline-none focus:border-cyan-500/50 transition-colors"
+                                    className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-3 text-white focus:outline-none focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/20 transition-all"
                                 />
                             </div>
                         </div>
@@ -191,7 +161,7 @@ export default function LoginPage() {
                             <motion.div
                                 initial={{ opacity: 0, y: -10 }}
                                 animate={{ opacity: 1, y: 0 }}
-                                className="text-rose-400 text-xs text-center bg-rose-500/10 py-2 rounded-lg"
+                                className="text-rose-400 text-xs text-center bg-rose-500/10 py-2 rounded-lg border border-rose-500/20"
                             >
                                 {error}
                             </motion.div>
@@ -199,7 +169,7 @@ export default function LoginPage() {
 
                         <NeonButton
                             type="submit"
-                            className="w-full mt-4"
+                            className="w-full mt-4 h-12 text-sm font-semibold tracking-wider uppercase"
                             disabled={loading}
                         >
                             {loading ? t("signingIn") : t("signInButton")}
@@ -207,21 +177,19 @@ export default function LoginPage() {
                     </form>
 
                     <div className="mt-8 pt-6 border-t border-white/5 space-y-4">
-                        {/* PWA Install Button - Always show for iOS/Android/Desktop */}
                         <NeonButton
                             size="sm"
                             variant="success"
                             onClick={handleInstallClick}
-                            className="w-full"
-                            // Always enabled to show instructions if prompt not available (e.g. iOS)
+                            className="w-full h-10 bg-emerald-500/10 border-emerald-500/20 hover:bg-emerald-500/20 text-emerald-400"
                             disabled={!showInstallPrompt && /iPhone|iPad|iPod/.test(navigator.userAgent) === false && !deferredPrompt}
                         >
                             <Smartphone className="w-4 h-4 mr-2" />
                             {t("installPWA")}
                         </NeonButton>
 
-                        <p className="text-white/20 text-xs text-center">
-                            Install this app on your device home screen for quick access.
+                        <p className="text-white/20 text-[10px] text-center uppercase tracking-widest">
+                            Secure Terminal v1.0.4
                         </p>
                     </div>
                 </GlassCard>
