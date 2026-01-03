@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import StatsGrid from "@/components/dashboard/StatsGrid";
 import RecentLog from "@/components/dashboard/RecentLog";
+import DashboardCharts from "@/components/dashboard/DashboardCharts";
 import NeonButton from "@/components/ui/NeonButton";
 import { Download, RefreshCw, Lock } from "lucide-react";
 import GlassCard from "@/components/ui/GlassCard";
