@@ -79,9 +79,50 @@ export default function LoginPage() {
     return (
         <div className="min-h-screen flex items-center justify-center bg-black relative overflow-hidden">
             {/* Background Gradients */}
-            <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
-                <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-cyan-500/10 rounded-full blur-[100px]" />
-                <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-500/10 rounded-full blur-[100px]" />
+            {/* Animated Neon Background */}
+            <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                <motion.div
+                    animate={{
+                        scale: [1, 1.2, 1],
+                        opacity: [0.3, 0.5, 0.3],
+                        rotate: [0, 90, 0]
+                    }}
+                    transition={{
+                        duration: 10,
+                        repeat: Infinity,
+                        ease: "easeInOut"
+                    }}
+                    className="absolute -top-[20%] -left-[10%] w-[70vh] h-[70vh] bg-cyan-500/20 rounded-full blur-[120px]"
+                />
+                <motion.div
+                    animate={{
+                        scale: [1, 1.1, 1],
+                        opacity: [0.2, 0.4, 0.2],
+                        rotate: [0, -45, 0]
+                    }}
+                    transition={{
+                        duration: 8,
+                        repeat: Infinity,
+                        ease: "easeInOut",
+                        delay: 1
+                    }}
+                    className="absolute top-[40%] right-[-20%] w-[60vh] h-[60vh] bg-purple-500/20 rounded-full blur-[100px]"
+                />
+                <motion.div
+                    animate={{
+                        y: [0, -50, 0],
+                        opacity: [0.1, 0.3, 0.1]
+                    }}
+                    transition={{
+                        duration: 15,
+                        repeat: Infinity,
+                        ease: "easeInOut"
+                    }}
+                    className="absolute bottom-[-10%] left-[20%] w-[50vh] h-[50vh] bg-blue-500/10 rounded-full blur-[100px]"
+                />
+
+                {/* Grid Overlay for Tech Feel */}
+                <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-[0.03] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))]" />
             </div>
 
             {/* Language Switcher - Absolute Top Right */}
