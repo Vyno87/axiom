@@ -8,10 +8,12 @@ import NeonButton from "@/components/ui/NeonButton";
 import TableSkeleton from "@/components/ui/TableSkeleton";
 import { Plus, Search, Trash2, Edit, X, AlertTriangle } from "lucide-react";
 import toast from "react-hot-toast";
+import { useLanguage } from "@/components/providers/LanguageProvider"; // Import hook
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 export default function EmployeesPage() {
+    const { t } = useLanguage(); // Use hook
     const { data, error, isLoading } = useSWR("/api/employees", fetcher);
     const [search, setSearch] = useState("");
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -43,15 +45,15 @@ export default function EmployeesPage() {
 
             if (res.ok) {
                 mutate("/api/employees");
-                toast.success(selectedEmployee ? "Employee updated successfully!" : "Employee added successfully!");
+                toast.success(selectedEmployee ? t("success") : t("success")); // Simplified toast for now or add keys
                 closeModal();
             } else {
                 const data = await res.json();
-                toast.error(data.error || "Failed to save employee");
+                toast.error(data.error || t("error"));
             }
         } catch (err) {
             console.error(err);
-            toast.error("Something went wrong");
+            toast.error(t("error"));
         } finally {
             setLoading(false);
         }
@@ -63,11 +65,11 @@ export default function EmployeesPage() {
         try {
             const res = await fetch(`/api/employees?id=${selectedEmployee._id}`, { method: "DELETE" });
             if (!res.ok) {
-                toast.error("Failed to delete employee");
+                toast.error(t("error"));
                 return;
             }
             mutate("/api/employees");
-            toast.success("Employee deleted successfully");
+            toast.success(t("success"));
             setIsDeleteOpen(false);
             setSelectedEmployee(null);
         } catch (err) {
@@ -97,11 +99,11 @@ export default function EmployeesPage() {
         <div className="space-y-6">
             <div className="flex justify-between items-end">
                 <div>
-                    <h1 className="text-3xl font-bold text-white mb-2">Employee Directory</h1>
-                    <p className="text-white/40">Manage personnel and biometric data</p>
+                    <h1 className="text-3xl font-bold text-white mb-2">{t("empTitle")}</h1>
+                    <p className="text-white/40">{t("empSubtitle")}</p>
                 </div>
                 <NeonButton onClick={() => openModal()}>
-                    <Plus className="w-4 h-4 mr-2" /> Add Employee
+                    <Plus className="w-4 h-4 mr-2" /> {t("empAdd")}
                 </NeonButton>
             </div>
 
@@ -111,7 +113,7 @@ export default function EmployeesPage() {
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
                         <input
                             type="text"
-                            placeholder="Search employees..."
+                            placeholder={t("empSearch")}
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
                             className="w-full bg-white/5 border border-white/10 rounded-lg pl-10 pr-4 py-2 text-white focus:outline-none focus:border-cyan-500/50 transition-colors"
@@ -123,18 +125,18 @@ export default function EmployeesPage() {
                     <table className="w-full text-left">
                         <thead className="bg-white/5 text-white/50 text-sm font-medium">
                             <tr>
-                                <th className="px-6 py-4">UID</th>
-                                <th className="px-6 py-4">Name</th>
-                                <th className="px-6 py-4">Department</th>
-                                <th className="px-6 py-4">Status</th>
-                                <th className="px-6 py-4 text-right">Actions</th>
+                                <th className="px-6 py-4">{t("empUID")}</th>
+                                <th className="px-6 py-4">{t("empName")}</th>
+                                <th className="px-6 py-4">{t("empDept")}</th>
+                                <th className="px-6 py-4">{t("empStatus")}</th>
+                                <th className="px-6 py-4 text-right">{t("empActions")}</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-white/5">
                             {isLoading ? (
                                 <tr><td colSpan={5} className="p-4"><TableSkeleton rows={5} /></td></tr>
                             ) : employees.length === 0 ? (
-                                <tr><td colSpan={5} className="px-6 py-8 text-center text-white/40">No employees found.</td></tr>
+                                <tr><td colSpan={5} className="px-6 py-8 text-center text-white/40">{t("empNoData")}</td></tr>
                             ) : (
                                 employees.map((emp: any) => (
                                     <tr key={emp._id} className="hover:bg-white/5 transition-colors group">
@@ -150,7 +152,7 @@ export default function EmployeesPage() {
                                                 ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
                                                 : 'bg-rose-500/10 text-rose-400 border-rose-500/20'
                                                 }`}>
-                                                {emp.isActive ? "Active" : "Inactive"}
+                                                {emp.isActive ? t("empActive") : "Inactive"}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 text-right">
@@ -191,11 +193,11 @@ export default function EmployeesPage() {
                             className="relative w-full max-w-md bg-[#0a0a0a] border border-white/10 rounded-2xl p-6 shadow-2xl"
                         >
                             <h2 className="text-xl font-bold text-white mb-4">
-                                {selectedEmployee ? "Edit Employee" : "Add New Employee"}
+                                {selectedEmployee ? t("empTitle") : t("empAdd")}
                             </h2>
                             <form onSubmit={handleSubmit} className="space-y-4">
                                 <div>
-                                    <label className="block text-xs font-medium text-white/40 mb-1">UID (Fingerprint ID)</label>
+                                    <label className="block text-xs font-medium text-white/40 mb-1">{t("empUID")}</label>
                                     <input
                                         type="number"
                                         required
@@ -206,7 +208,7 @@ export default function EmployeesPage() {
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-medium text-white/40 mb-1">Full Name</label>
+                                    <label className="block text-xs font-medium text-white/40 mb-1">{t("empName")}</label>
                                     <input
                                         type="text"
                                         required
@@ -217,7 +219,7 @@ export default function EmployeesPage() {
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-medium text-white/40 mb-1">Department</label>
+                                    <label className="block text-xs font-medium text-white/40 mb-1">{t("empDept")}</label>
                                     <input
                                         type="text"
                                         required
@@ -233,10 +235,10 @@ export default function EmployeesPage() {
                                         onClick={closeModal}
                                         className="flex-1 py-2 rounded-xl text-white/60 hover:bg-white/5 transition-colors"
                                     >
-                                        Cancel
+                                        {t("empCancel")}
                                     </button>
                                     <NeonButton type="submit" className="flex-1" disabled={loading}>
-                                        {loading ? "Saving..." : "Save Record"}
+                                        {loading ? t("empSaving") : t("empSave")}
                                     </NeonButton>
                                 </div>
                             </form>
@@ -261,17 +263,16 @@ export default function EmployeesPage() {
                             <div className="w-12 h-12 bg-rose-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
                                 <AlertTriangle className="w-6 h-6 text-rose-500" />
                             </div>
-                            <h2 className="text-xl font-bold text-white mb-2">Delete Employee?</h2>
+                            <h2 className="text-xl font-bold text-white mb-2">{t("empDeleteTitle")}</h2>
                             <p className="text-white/40 mb-6">
-                                Are you sure you want to delete <span className="text-white font-medium">{selectedEmployee?.name}</span>?
-                                This action cannot be undone.
+                                {t("empDeleteDesc")}
                             </p>
                             <div className="flex gap-3">
                                 <button
                                     onClick={() => setIsDeleteOpen(false)}
                                     className="flex-1 py-2 rounded-xl text-white/60 hover:bg-white/5 transition-colors"
                                 >
-                                    Cancel
+                                    {t("empCancel")}
                                 </button>
                                 <NeonButton
                                     variant="danger"
@@ -279,7 +280,7 @@ export default function EmployeesPage() {
                                     onClick={handleDelete}
                                     disabled={loading}
                                 >
-                                    {loading ? "Deleting..." : "Delete"}
+                                    {loading ? t("loading") : t("empConfirmDelete")}
                                 </NeonButton>
                             </div>
                         </motion.div>

@@ -6,17 +6,19 @@ import { LayoutDashboard, Users, History, Settings, Fingerprint, LogOut } from "
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { useSession, signOut } from "next-auth/react";
-
-const menuItems = [
-    { icon: LayoutDashboard, label: "Dashboard", href: "/" },
-    { icon: Users, label: "Employees", href: "/employees", role: "admin" },
-    { icon: History, label: "History", href: "/history", role: "admin" },
-    { icon: Settings, label: "Settings", href: "/settings" },
-];
+import { useLanguage } from "@/components/providers/LanguageProvider";
 
 export default function Sidebar() {
     const pathname = usePathname();
     const { data: session, status } = useSession();
+    const { t, language, setLanguage } = useLanguage();
+
+    const menuItems = [
+        { icon: LayoutDashboard, label: t("navDashboard"), href: "/" },
+        { icon: Users, label: t("navEmployees"), href: "/employees", role: "admin" },
+        { icon: History, label: t("navHistory"), href: "/history", role: "admin" },
+        { icon: Settings, label: t("navSettings"), href: "/settings" },
+    ];
 
     // Hide sidebar on login page
     if (pathname === "/login") return null;
@@ -25,7 +27,7 @@ export default function Sidebar() {
         <motion.aside
             initial={{ x: -100, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
-            className="fixed left-0 top-0 bottom-0 w-64 glass-panel border-r border-white/10 hidden md:flex flex-col z-50"
+            className="fixed left-0 top-0 bottom-0 w-64 glass-panel border-r border-white/10 hidden md:flex flex-col z-50 bg-black/50 backdrop-blur-xl"
         >
             <div className="p-8 flex items-center gap-3">
                 <div className="bg-cyan-500/20 p-2 rounded-lg border border-cyan-500/50">
@@ -35,7 +37,7 @@ export default function Sidebar() {
                     <h1 className="text-2xl font-bold tracking-tighter text-white">
                         AXIOM<span className="text-cyan-400">.ID</span>
                     </h1>
-                    <p className="text-xs text-white/40 tracking-widest">SYSTEM V2.0</p>
+                    <p className="text-xs text-white/40 tracking-widest">SYSTEM V2.1</p>
                 </div>
             </div>
 
@@ -75,6 +77,24 @@ export default function Sidebar() {
             </nav>
 
             <div className="p-6 space-y-4">
+                {/* Language Switcher */}
+                <div className="flex bg-white/5 rounded-full p-1 border border-white/10 w-full justify-between">
+                    <button
+                        onClick={() => setLanguage("en")}
+                        className={`flex-1 px-2 py-1 rounded-full text-xs font-medium transition-all ${language === "en" ? "bg-cyan-500/20 text-cyan-400" : "text-white/40 hover:text-white"
+                            }`}
+                    >
+                        English
+                    </button>
+                    <button
+                        onClick={() => setLanguage("id")}
+                        className={`flex-1 px-2 py-1 rounded-full text-xs font-medium transition-all ${language === "id" ? "bg-purple-500/20 text-purple-400" : "text-white/40 hover:text-white"
+                            }`}
+                    >
+                        Indonesia
+                    </button>
+                </div>
+
                 {/* User Profile */}
                 {status === "authenticated" && (
                     <div className="flex items-center gap-3 px-2">
@@ -87,14 +107,6 @@ export default function Sidebar() {
                         </div>
                     </div>
                 )}
-
-                <div className="glass-card p-4 rounded-xl bg-gradient-to-br from-cyan-900/20 to-purple-900/20 border border-white/5">
-                    <p className="text-xs text-cyan-300 mb-1">System Status</p>
-                    <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_#34d399]" />
-                        <span className="text-sm font-medium text-white">Online</span>
-                    </div>
-                </div>
             </div>
         </motion.aside>
     );

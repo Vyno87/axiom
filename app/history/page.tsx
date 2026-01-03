@@ -8,6 +8,7 @@ import useSWR from "swr";
 import { FileDown, FileSpreadsheet, Calendar, TrendingUp } from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { useLanguage } from "@/components/providers/LanguageProvider"; // Import hook
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
@@ -23,6 +24,7 @@ interface AttendanceLog {
 }
 
 export default function HistoryPage() {
+    const { t } = useLanguage();
     const { data, isLoading } = useSWR<{ data: AttendanceLog[] }>(
         "/api/attendance?limit=1000",
         fetcher
@@ -187,15 +189,15 @@ export default function HistoryPage() {
         <div className="space-y-6">
             <div className="flex justify-between items-end">
                 <div>
-                    <h1 className="text-3xl font-bold text-white mb-2">Attendance Logs</h1>
-                    <p className="text-white/40">Complete history with analytics</p>
+                    <h1 className="text-3xl font-bold text-white mb-2">{t("histTitle")}</h1>
+                    <p className="text-white/40">{t("histSubtitle")}</p>
                 </div>
                 <div className="flex gap-2">
                     <NeonButton size="sm" variant="success" onClick={exportToCSV}>
-                        <FileSpreadsheet className="w-4 h-4 mr-2" /> Export CSV
+                        <FileSpreadsheet className="w-4 h-4 mr-2" /> {t("histExportCSV")}
                     </NeonButton>
                     <NeonButton size="sm" variant="primary" onClick={exportToPDF}>
-                        <FileDown className="w-4 h-4 mr-2" /> Export PDF
+                        <FileDown className="w-4 h-4 mr-2" /> {t("histExportPDF")}
                     </NeonButton>
                 </div>
             </div>
@@ -206,7 +208,7 @@ export default function HistoryPage() {
                     <GlassCard className="p-4">
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-xs text-white/40">Total Events</p>
+                                <p className="text-xs text-white/40">{t("statTotalEvents")}</p>
                                 <p className="text-2xl font-bold text-white mt-1">{stats.total}</p>
                             </div>
                             <TrendingUp className="w-8 h-8 text-cyan-400/40" />
@@ -215,7 +217,7 @@ export default function HistoryPage() {
                     <GlassCard className="p-4">
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-xs text-white/40">Check-Ins</p>
+                                <p className="text-xs text-white/40">{t("statCheckIns")}</p>
                                 <p className="text-2xl font-bold text-emerald-400 mt-1">{stats.checkIns}</p>
                                 <p className="text-xs text-white/40">{stats.checkInPercent}%</p>
                             </div>
@@ -224,7 +226,7 @@ export default function HistoryPage() {
                     <GlassCard className="p-4">
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-xs text-white/40">Check-Outs</p>
+                                <p className="text-xs text-white/40">{t("statCheckOuts")}</p>
                                 <p className="text-2xl font-bold text-purple-400 mt-1">{stats.checkOuts}</p>
                                 <p className="text-xs text-white/40">{stats.checkOutPercent}%</p>
                             </div>
@@ -238,7 +240,7 @@ export default function HistoryPage() {
                 <div className="flex flex-wrap gap-4 items-end">
                     <div className="flex-1 min-w-[200px]">
                         <label className="block text-xs font-medium text-white/40 mb-1">
-                            <Calendar className="w-3 h-3 inline mr-1" /> Start Date
+                            <Calendar className="w-3 h-3 inline mr-1" /> {t("histStart")}
                         </label>
                         <input
                             type="date"
@@ -249,7 +251,7 @@ export default function HistoryPage() {
                     </div>
                     <div className="flex-1 min-w-[200px]">
                         <label className="block text-xs font-medium text-white/40 mb-1">
-                            <Calendar className="w-3 h-3 inline mr-1" /> End Date
+                            <Calendar className="w-3 h-3 inline mr-1" /> {t("histEnd")}
                         </label>
                         <input
                             type="date"
@@ -267,7 +269,7 @@ export default function HistoryPage() {
                             setEndDate("");
                         }}
                     >
-                        Clear Filter
+                        {t("histClear")}
                     </NeonButton>
                 </div>
             </GlassCard>
@@ -276,16 +278,16 @@ export default function HistoryPage() {
             {stats && Object.keys(stats.byDepartment).length > 0 && (
                 <GlassCard className="p-0 overflow-hidden">
                     <div className="p-4 border-b border-white/10">
-                        <h3 className="font-bold text-white">Department Breakdown</h3>
+                        <h3 className="font-bold text-white">{t("statDeptBreakdown")}</h3>
                     </div>
                     <div className="overflow-x-auto">
                         <table className="w-full">
                             <thead className="bg-white/5 text-white/50 text-sm">
                                 <tr>
-                                    <th className="px-6 py-3 text-left">Department</th>
-                                    <th className="px-6 py-3 text-right">Check-Ins</th>
-                                    <th className="px-6 py-3 text-right">Check-Outs</th>
-                                    <th className="px-6 py-3 text-right">Total</th>
+                                    <th className="px-6 py-3 text-left">{t("statTableDept")}</th>
+                                    <th className="px-6 py-3 text-right">{t("statCheckIns")}</th>
+                                    <th className="px-6 py-3 text-right">{t("statCheckOuts")}</th>
+                                    <th className="px-6 py-3 text-right">{t("statTableTotal")}</th>
                                     <th className="px-6 py-3 text-right">% of Total</th>
                                 </tr>
                             </thead>
@@ -312,23 +314,23 @@ export default function HistoryPage() {
             {/* Detailed Logs */}
             <GlassCard className="overflow-hidden p-0">
                 <div className="p-4 border-b border-white/10">
-                    <h3 className="font-bold text-white">Detailed Logs ({filteredLogs.length} records)</h3>
+                    <h3 className="font-bold text-white">{t("histTitle")} ({filteredLogs.length})</h3>
                 </div>
                 <div className="overflow-x-auto">
                     <table className="w-full text-left">
                         <thead className="bg-white/5 text-white/50 text-sm font-medium">
                             <tr>
-                                <th className="px-6 py-4">Time</th>
-                                <th className="px-6 py-4">Employee</th>
-                                <th className="px-6 py-4">Event</th>
-                                <th className="px-6 py-4">Device</th>
+                                <th className="px-6 py-4">{t("histTime")}</th>
+                                <th className="px-6 py-4">{t("histEmp")}</th>
+                                <th className="px-6 py-4">{t("histEvent")}</th>
+                                <th className="px-6 py-4">{t("histDevice")}</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-white/5">
                             {isLoading ? (
-                                <tr><td colSpan={4} className="p-8 text-center text-white/30">Loading history...</td></tr>
+                                <tr><td colSpan={4} className="p-8 text-center text-white/30">{t("histLoading")}</td></tr>
                             ) : filteredLogs.length === 0 ? (
-                                <tr><td colSpan={4} className="p-8 text-center text-white/30">No records found for this period.</td></tr>
+                                <tr><td colSpan={4} className="p-8 text-center text-white/30">{t("histNoData")}</td></tr>
                             ) : (
                                 filteredLogs.slice(0, 100).map((log) => (
                                     <tr key={log._id} className="hover:bg-white/5 transition-colors">
@@ -354,11 +356,6 @@ export default function HistoryPage() {
                         </tbody>
                     </table>
                 </div>
-                {filteredLogs.length > 100 && (
-                    <div className="p-4 bg-white/5 text-center text-white/40 text-sm">
-                        Showing first 100 of {filteredLogs.length} records. Use export for full data.
-                    </div>
-                )}
             </GlassCard>
         </div>
     );
