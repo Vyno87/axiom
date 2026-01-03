@@ -12,7 +12,9 @@ import useSWR, { mutate } from "swr";
 import { motion, AnimatePresence } from "framer-motion";
 import GlassCard from "@/components/ui/GlassCard";
 import NeonButton from "@/components/ui/NeonButton";
-import { Plus, Search, Trash2, Edit, X, Save, AlertTriangle } from "lucide-react";
+import TableSkeleton from "@/components/ui/TableSkeleton";
+import { Plus, Search, Trash2, Edit, X, AlertTriangle } from "lucide-react";
+import toast from "react-hot-toast";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
@@ -48,12 +50,15 @@ export default function EmployeesPage() {
 
             if (res.ok) {
                 mutate("/api/employees");
+                toast.success(selectedEmployee ? "Employee updated successfully!" : "Employee added successfully!");
                 closeModal();
             } else {
-                alert("Failed to save employee.");
+                const data = await res.json();
+                toast.error(data.error || "Failed to save employee");
             }
         } catch (err) {
             console.error(err);
+            toast.error("Something went wrong");
         } finally {
             setLoading(false);
         }
@@ -63,8 +68,13 @@ export default function EmployeesPage() {
         if (!selectedEmployee) return;
         setLoading(true);
         try {
-            await fetch(`/api/employees?id=${selectedEmployee._id}`, { method: "DELETE" });
+            const res = await fetch(`/api/employees?id=${selectedEmployee._id}`, { method: "DELETE" });
+            if (!res.ok) {
+                toast.error("Failed to delete employee");
+                return;
+            }
             mutate("/api/employees");
+            toast.success("Employee deleted successfully");
             setIsDeleteOpen(false);
             setSelectedEmployee(null);
         } catch (err) {
@@ -129,7 +139,7 @@ export default function EmployeesPage() {
                         </thead>
                         <tbody className="divide-y divide-white/5">
                             {isLoading ? (
-                                <tr><td colSpan={5} className="px-6 py-8 text-center text-white/40">Loading directory...</td></tr>
+                                <tr><td colSpan={5} className="p-4"><TableSkeleton rows={5} /></td></tr>
                             ) : employees.length === 0 ? (
                                 <tr><td colSpan={5} className="px-6 py-8 text-center text-white/40">No employees found.</td></tr>
                             ) : (
@@ -144,8 +154,8 @@ export default function EmployeesPage() {
                                         <td className="px-6 py-4 text-white/70">{emp.department}</td>
                                         <td className="px-6 py-4">
                                             <span className={`px-2 py-1 rounded-full text-xs border ${emp.isActive
-                                                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                                                    : 'bg-rose-500/10 text-rose-400 border-rose-500/20'
+                                                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                                                : 'bg-rose-500/10 text-rose-400 border-rose-500/20'
                                                 }`}>
                                                 {emp.isActive ? "Active" : "Inactive"}
                                             </span>
