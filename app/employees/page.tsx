@@ -5,12 +5,90 @@ import GlassCard from "@/components/ui/GlassCard";
 import NeonButton from "@/components/ui/NeonButton";
 import { Plus, Search, Trash2, Edit } from "lucide-react";
 
+"use client";
+
+import { useState } from "react";
+import useSWR, { mutate } from "swr";
+import { motion, AnimatePresence } from "framer-motion";
+import GlassCard from "@/components/ui/GlassCard";
+import NeonButton from "@/components/ui/NeonButton";
+import { Plus, Search, Trash2, Edit, X, Save, AlertTriangle } from "lucide-react";
+
+const fetcher = (url: string) => fetch(url).then((res) => res.json());
+
 export default function EmployeesPage() {
-    const employees = [
-        { id: 1, name: "Budi Santoso", dept: "Engineering", role: "Senior Dev", status: "Active" },
-        { id: 2, name: "Siti Aminah", dept: "HR", role: "Manager", status: "Active" },
-        { id: 3, name: "Agus Pratama", dept: "Marketing", role: "Specialist", status: "Offline" },
-    ];
+    const { data, error, isLoading } = useSWR("/api/employees", fetcher);
+    const [search, setSearch] = useState("");
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+    const [selectedEmployee, setSelectedEmployee] = useState<any>(null);
+    const [formData, setFormData] = useState({ uid: "", name: "", department: "" });
+    const [loading, setLoading] = useState(false);
+
+    // Filter employees
+    const employees = data?.data?.filter((e: any) =>
+        e.name.toLowerCase().includes(search.toLowerCase()) ||
+        e.department.toLowerCase().includes(search.toLowerCase()) ||
+        e.uid.toString().includes(search)
+    ) || [];
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setLoading(true);
+
+        const method = selectedEmployee ? "PUT" : "POST";
+        const body = selectedEmployee ? { ...formData, _id: selectedEmployee._id } : formData;
+
+        try {
+            const res = await fetch("/api/employees", {
+                method,
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(body),
+            });
+
+            if (res.ok) {
+                mutate("/api/employees");
+                closeModal();
+            } else {
+                alert("Failed to save employee.");
+            }
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleDelete = async () => {
+        if (!selectedEmployee) return;
+        setLoading(true);
+        try {
+            await fetch(`/api/employees?id=${selectedEmployee._id}`, { method: "DELETE" });
+            mutate("/api/employees");
+            setIsDeleteOpen(false);
+            setSelectedEmployee(null);
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const openModal = (emp?: any) => {
+        if (emp) {
+            setSelectedEmployee(emp);
+            setFormData({ uid: emp.uid, name: emp.name, department: emp.department });
+        } else {
+            setSelectedEmployee(null);
+            setFormData({ uid: "", name: "", department: "" });
+        }
+        setIsModalOpen(true);
+    };
+
+    const closeModal = () => {
+        setIsModalOpen(false);
+        setSelectedEmployee(null);
+    };
 
     return (
         <div className="space-y-6">
@@ -19,7 +97,7 @@ export default function EmployeesPage() {
                     <h1 className="text-3xl font-bold text-white mb-2">Employee Directory</h1>
                     <p className="text-white/40">Manage personnel and biometric data</p>
                 </div>
-                <NeonButton>
+                <NeonButton onClick={() => openModal()}>
                     <Plus className="w-4 h-4 mr-2" /> Add Employee
                 </NeonButton>
             </div>
@@ -31,53 +109,180 @@ export default function EmployeesPage() {
                         <input
                             type="text"
                             placeholder="Search employees..."
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
                             className="w-full bg-white/5 border border-white/10 rounded-lg pl-10 pr-4 py-2 text-white focus:outline-none focus:border-cyan-500/50 transition-colors"
                         />
                     </div>
                 </div>
 
-                <table className="w-full text-left">
-                    <thead className="bg-white/5 text-white/50 text-sm font-medium">
-                        <tr>
-                            <th className="px-6 py-4">ID</th>
-                            <th className="px-6 py-4">Name</th>
-                            <th className="px-6 py-4">Department</th>
-                            <th className="px-6 py-4">Status</th>
-                            <th className="px-6 py-4 text-right">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-white/5">
-                        {employees.map((emp) => (
-                            <tr key={emp.id} className="hover:bg-white/5 transition-colors group">
-                                <td className="px-6 py-4 font-mono text-cyan-400">#{emp.id.toString().padStart(3, '0')}</td>
-                                <td className="px-6 py-4">
-                                    <div className="font-medium text-white">{emp.name}</div>
-                                    <div className="text-xs text-white/40">{emp.role}</div>
-                                </td>
-                                <td className="px-6 py-4 text-white/70">{emp.dept}</td>
-                                <td className="px-6 py-4">
-                                    <span className={`px-2 py-1 rounded-full text-xs border ${emp.status === 'Active'
-                                            ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                                            : 'bg-slate-500/10 text-slate-400 border-slate-500/20'
-                                        }`}>
-                                        {emp.status}
-                                    </span>
-                                </td>
-                                <td className="px-6 py-4 text-right">
-                                    <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <button className="p-2 hover:bg-cyan-500/20 rounded-lg text-cyan-400 transition-colors">
-                                            <Edit className="w-4 h-4" />
-                                        </button>
-                                        <button className="p-2 hover:bg-rose-500/20 rounded-lg text-rose-400 transition-colors">
-                                            <Trash2 className="w-4 h-4" />
-                                        </button>
-                                    </div>
-                                </td>
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left">
+                        <thead className="bg-white/5 text-white/50 text-sm font-medium">
+                            <tr>
+                                <th className="px-6 py-4">UID</th>
+                                <th className="px-6 py-4">Name</th>
+                                <th className="px-6 py-4">Department</th>
+                                <th className="px-6 py-4">Status</th>
+                                <th className="px-6 py-4 text-right">Actions</th>
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody className="divide-y divide-white/5">
+                            {isLoading ? (
+                                <tr><td colSpan={5} className="px-6 py-8 text-center text-white/40">Loading directory...</td></tr>
+                            ) : employees.length === 0 ? (
+                                <tr><td colSpan={5} className="px-6 py-8 text-center text-white/40">No employees found.</td></tr>
+                            ) : (
+                                employees.map((emp: any) => (
+                                    <tr key={emp._id} className="hover:bg-white/5 transition-colors group">
+                                        <td className="px-6 py-4 font-mono text-cyan-400">
+                                            #{emp.uid.toString().padStart(3, '0')}
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div className="font-medium text-white">{emp.name}</div>
+                                        </td>
+                                        <td className="px-6 py-4 text-white/70">{emp.department}</td>
+                                        <td className="px-6 py-4">
+                                            <span className={`px-2 py-1 rounded-full text-xs border ${emp.isActive
+                                                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                                                    : 'bg-rose-500/10 text-rose-400 border-rose-500/20'
+                                                }`}>
+                                                {emp.isActive ? "Active" : "Inactive"}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4 text-right">
+                                            <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <button
+                                                    onClick={() => openModal(emp)}
+                                                    className="p-2 hover:bg-cyan-500/20 rounded-lg text-cyan-400 transition-colors"
+                                                >
+                                                    <Edit className="w-4 h-4" />
+                                                </button>
+                                                <button
+                                                    onClick={() => { setSelectedEmployee(emp); setIsDeleteOpen(true); }}
+                                                    className="p-2 hover:bg-rose-500/20 rounded-lg text-rose-400 transition-colors"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
+                </div>
             </GlassCard>
+
+            {/* EDIT/ADD MODAL */}
+            <AnimatePresence>
+                {isModalOpen && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                        <motion.div
+                            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                            className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+                            onClick={closeModal}
+                        />
+                        <motion.div
+                            initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
+                            className="relative w-full max-w-md bg-[#0a0a0a] border border-white/10 rounded-2xl p-6 shadow-2xl"
+                        >
+                            <h2 className="text-xl font-bold text-white mb-4">
+                                {selectedEmployee ? "Edit Employee" : "Add New Employee"}
+                            </h2>
+                            <form onSubmit={handleSubmit} className="space-y-4">
+                                <div>
+                                    <label className="block text-xs font-medium text-white/40 mb-1">UID (Fingerprint ID)</label>
+                                    <input
+                                        type="number"
+                                        required
+                                        value={formData.uid}
+                                        onChange={e => setFormData({ ...formData, uid: e.target.value })}
+                                        className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-white focus:border-cyan-500/50 outline-none"
+                                        placeholder="e.g. 1"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-medium text-white/40 mb-1">Full Name</label>
+                                    <input
+                                        type="text"
+                                        required
+                                        value={formData.name}
+                                        onChange={e => setFormData({ ...formData, name: e.target.value })}
+                                        className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-white focus:border-cyan-500/50 outline-none"
+                                        placeholder="e.g. John Doe"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-medium text-white/40 mb-1">Department</label>
+                                    <input
+                                        type="text"
+                                        required
+                                        value={formData.department}
+                                        onChange={e => setFormData({ ...formData, department: e.target.value })}
+                                        className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-white focus:border-cyan-500/50 outline-none"
+                                        placeholder="e.g. Engineering"
+                                    />
+                                </div>
+                                <div className="flex gap-3 pt-4">
+                                    <button
+                                        type="button"
+                                        onClick={closeModal}
+                                        className="flex-1 py-2 rounded-xl text-white/60 hover:bg-white/5 transition-colors"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <NeonButton type="submit" className="flex-1" disabled={loading}>
+                                        {loading ? "Saving..." : "Save Record"}
+                                    </NeonButton>
+                                </div>
+                            </form>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* DELETE CONFIRMATION */}
+            <AnimatePresence>
+                {isDeleteOpen && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                        <motion.div
+                            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                            className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+                            onClick={() => setIsDeleteOpen(false)}
+                        />
+                        <motion.div
+                            initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
+                            className="relative w-full max-w-sm bg-[#0a0a0a] border border-white/10 rounded-2xl p-6 shadow-2xl text-center"
+                        >
+                            <div className="w-12 h-12 bg-rose-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <AlertTriangle className="w-6 h-6 text-rose-500" />
+                            </div>
+                            <h2 className="text-xl font-bold text-white mb-2">Delete Employee?</h2>
+                            <p className="text-white/40 mb-6">
+                                Are you sure you want to delete <span className="text-white font-medium">{selectedEmployee?.name}</span>?
+                                This action cannot be undone.
+                            </p>
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => setIsDeleteOpen(false)}
+                                    className="flex-1 py-2 rounded-xl text-white/60 hover:bg-white/5 transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <NeonButton
+                                    variant="danger"
+                                    className="flex-1"
+                                    onClick={handleDelete}
+                                    disabled={loading}
+                                >
+                                    {loading ? "Deleting..." : "Delete"}
+                                </NeonButton>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }
