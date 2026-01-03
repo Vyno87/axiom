@@ -16,9 +16,36 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Axiom ID | Secure Attendance System",
-  description: "Advanced biometric attendance management system",
+  title: "Axiom ID | Advanced Biometric Attendance System",
+  description: "Next-generation biometric attendance management with ESP32, fingerprint authentication, and real-time analytics. Secure, fast, and beautiful.",
   manifest: "/manifest.json",
+  keywords: ["attendance system", "biometric", "fingerprint", "ESP32", "Next.js", "PWA", "time tracking"],
+  authors: [{ name: "Vyno87" }],
+  openGraph: {
+    title: "Axiom ID - Biometric Attendance System",
+    description: "Secure attendance tracking with ESP32 hardware and premium web dashboard",
+    url: "https://axiom-pearl-six.vercel.app",
+    siteName: "Axiom ID",
+    images: [
+      {
+        url: "/icon-512x512.png",
+        width: 512,
+        height: 512,
+      },
+    ],
+    locale: "en_US",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Axiom ID - Biometric Attendance",
+    description: "Advanced attendance system with fingerprint authentication",
+    images: ["/icon-512x512.png"],
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
 };
 
 export default function RootLayout({
