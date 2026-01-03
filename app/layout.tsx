@@ -4,6 +4,7 @@ import Sidebar from "@/components/layout/Sidebar";
 import AuthProvider from "@/components/providers/AuthProvider";
 import ToastProvider from "@/components/providers/ToastProvider";
 import { LanguageProvider } from "@/components/providers/LanguageProvider";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -67,6 +68,7 @@ export default function RootLayout({
               <main className="flex-1 md:pl-64 transition-all duration-300">
                 <div className="p-8 max-w-7xl mx-auto space-y-8 min-h-screen">
                   {children}
+                  <SpeedInsights />
                 </div>
               </main>
             </div>
