@@ -4,12 +4,14 @@ import { useState, useEffect } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Fingerprint, Lock, User, Shield, Download, Smartphone } from "lucide-react";
+import { Fingerprint, Lock, User, Smartphone, Globe } from "lucide-react";
 import NeonButton from "@/components/ui/NeonButton";
 import GlassCard from "@/components/ui/GlassCard";
+import { useLanguage } from "@/components/providers/LanguageProvider";
 
 export default function LoginPage() {
     const router = useRouter();
+    const { t, language, setLanguage } = useLanguage();
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
     const [loading, setLoading] = useState(false);
@@ -44,7 +46,7 @@ export default function LoginPage() {
         });
 
         if (res?.error) {
-            setError("Invalid credentials. Try admin/admin123 or user/user123");
+            setError(t("errorTitle")); // Simplified error message for i18n
             setLoading(false);
         } else {
             router.push("/");
@@ -82,6 +84,26 @@ export default function LoginPage() {
                 <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-500/10 rounded-full blur-[100px]" />
             </div>
 
+            {/* Language Switcher - Absolute Top Right */}
+            <div className="absolute top-6 right-6 z-20">
+                <div className="flex bg-white/5 rounded-full p-1 border border-white/10 backdrop-blur-md">
+                    <button
+                        onClick={() => setLanguage("en")}
+                        className={`px-3 py-1 rounded-full text-xs font-medium transition-all ${language === "en" ? "bg-cyan-500/20 text-cyan-400" : "text-white/40 hover:text-white"
+                            }`}
+                    >
+                        ENG
+                    </button>
+                    <button
+                        onClick={() => setLanguage("id")}
+                        className={`px-3 py-1 rounded-full text-xs font-medium transition-all ${language === "id" ? "bg-purple-500/20 text-purple-400" : "text-white/40 hover:text-white"
+                            }`}
+                    >
+                        IND
+                    </button>
+                </div>
+            </div>
+
             <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -93,7 +115,7 @@ export default function LoginPage() {
                             <Fingerprint className="w-8 h-8 text-cyan-400" />
                         </div>
                         <h1 className="text-2xl font-bold text-white tracking-tight">AXIOM IDENTITY</h1>
-                        <p className="text-white/40 text-sm mt-1">Secure Biometric Access</p>
+                        <p className="text-white/40 text-sm mt-1">{t("loginSubtitle")}</p>
                     </div>
 
                     <form onSubmit={handleLogin} className="space-y-4">
@@ -102,7 +124,7 @@ export default function LoginPage() {
                                 <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
                                 <input
                                     type="text"
-                                    placeholder="Username"
+                                    placeholder={t("usernameLabel")}
                                     value={username}
                                     onChange={(e) => setUsername(e.target.value)}
                                     className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-3 text-white focus:outline-none focus:border-cyan-500/50 transition-colors"
@@ -114,7 +136,7 @@ export default function LoginPage() {
                                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
                                 <input
                                     type="password"
-                                    placeholder="Password"
+                                    placeholder={t("passwordLabel")}
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                     className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-3 text-white focus:outline-none focus:border-cyan-500/50 transition-colors"
@@ -137,7 +159,7 @@ export default function LoginPage() {
                             className="w-full mt-4"
                             disabled={loading}
                         >
-                            {loading ? "Authenticating..." : "Sign In System"}
+                            {loading ? t("signingIn") : t("signInButton")}
                         </NeonButton>
                     </form>
 
@@ -152,7 +174,7 @@ export default function LoginPage() {
                             disabled={false}
                         >
                             <Smartphone className="w-4 h-4 mr-2" />
-                            Install on Desktop, Android or iPhone
+                            {t("installPWA")}
                         </NeonButton>
 
                         <p className="text-white/20 text-xs text-center">

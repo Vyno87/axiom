@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import Sidebar from "@/components/layout/Sidebar";
 import AuthProvider from "@/components/providers/AuthProvider";
 import ToastProvider from "@/components/providers/ToastProvider";
+import { LanguageProvider } from "@/components/providers/LanguageProvider";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -59,15 +60,17 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-black text-white selection:bg-cyan-500/30`}
       >
         <AuthProvider>
-          <ToastProvider />
-          <div className="flex min-h-screen">
-            <Sidebar />
-            <main className="flex-1 md:pl-64 transition-all duration-300">
-              <div className="p-8 max-w-7xl mx-auto space-y-8 min-h-screen">
-                {children}
-              </div>
-            </main>
-          </div>
+          <LanguageProvider>
+            <ToastProvider />
+            <div className="flex min-h-screen">
+              <Sidebar />
+              <main className="flex-1 md:pl-64 transition-all duration-300">
+                <div className="p-8 max-w-7xl mx-auto space-y-8 min-h-screen">
+                  {children}
+                </div>
+              </main>
+            </div>
+          </LanguageProvider>
         </AuthProvider>
       </body>
     </html>
