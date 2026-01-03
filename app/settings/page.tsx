@@ -1,11 +1,56 @@
 "use client";
 
+import { useState } from "react";
 import GlassCard from "@/components/ui/GlassCard";
 import NeonButton from "@/components/ui/NeonButton";
-import { Server, Wifi, Shield, RefreshCcw, Smartphone, LogOut } from "lucide-react";
+import { Server, Shield, LogOut, Lock, X } from "lucide-react";
 import { signOut } from "next-auth/react";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function SettingsPage() {
+    const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+    const [passForm, setPassForm] = useState({ current: "", new: "", confirm: "" });
+    const [loading, setLoading] = useState(false);
+    const [msg, setMsg] = useState({ type: "", text: "" });
+
+    const handlePasswordChange = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setMsg({ type: "", text: "" });
+
+        if (passForm.new !== passForm.confirm) {
+            setMsg({ type: "error", text: "New passwords do not match" });
+            return;
+        }
+
+        setLoading(true);
+        try {
+            const res = await fetch("/api/user/password", {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    currentPassword: passForm.current,
+                    newPassword: passForm.new
+                }),
+            });
+            const data = await res.json();
+
+            if (res.ok) {
+                setMsg({ type: "success", text: "Password updated successfully!" });
+                setTimeout(() => {
+                    setIsPasswordModalOpen(false);
+                    setPassForm({ current: "", new: "", confirm: "" });
+                    setMsg({ type: "", text: "" });
+                }, 1500);
+            } else {
+                setMsg({ type: "error", text: data.error || "Failed to update password" });
+            }
+        } catch (error) {
+            setMsg({ type: "error", text: "Something went wrong" });
+        } finally {
+            setLoading(false);
+        }
+    };
+
     return (
         <div className="space-y-6">
             <div className="mb-8">
@@ -55,7 +100,12 @@ export default function SettingsPage() {
                             <h3 className="font-medium text-white mb-2">Password</h3>
                             <p className="text-sm text-white/40 mb-4">Update your account password for better security.</p>
                             <div className="flex gap-2">
-                                <NeonButton size="sm" variant="primary" glow={false}>
+                                <NeonButton
+                                    size="sm"
+                                    variant="primary"
+                                    glow={false}
+                                    onClick={() => setIsPasswordModalOpen(true)}
+                                >
                                     <Shield className="w-4 h-4 mr-2" /> Change Password
                                 </NeonButton>
                             </div>
@@ -70,6 +120,74 @@ export default function SettingsPage() {
                     </div>
                 </GlassCard>
             </div>
+
+            {/* PASSWORD CHANGE MODAL */}
+            <AnimatePresence>
+                {isPasswordModalOpen && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                        <motion.div
+                            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                            className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+                            onClick={() => setIsPasswordModalOpen(false)}
+                        />
+                        <motion.div
+                            initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
+                            className="relative w-full max-w-md bg-[#0a0a0a] border border-white/10 rounded-2xl p-6 shadow-2xl"
+                        >
+                            <button
+                                onClick={() => setIsPasswordModalOpen(false)}
+                                className="absolute right-4 top-4 text-white/40 hover:text-white"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+
+                            <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                                <Lock className="w-5 h-5 text-cyan-400" /> Change Password
+                            </h2>
+
+                            <form onSubmit={handlePasswordChange} className="space-y-4">
+                                <div>
+                                    <label className="block text-xs font-medium text-white/40 mb-1">Current Password</label>
+                                    <input
+                                        type="password" required
+                                        value={passForm.current}
+                                        onChange={e => setPassForm({ ...passForm, current: e.target.value })}
+                                        className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-white focus:border-cyan-500/50 outline-none"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-medium text-white/40 mb-1">New Password</label>
+                                    <input
+                                        type="password" required
+                                        value={passForm.new}
+                                        onChange={e => setPassForm({ ...passForm, new: e.target.value })}
+                                        className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-white focus:border-cyan-500/50 outline-none"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-medium text-white/40 mb-1">Confirm New Password</label>
+                                    <input
+                                        type="password" required
+                                        value={passForm.confirm}
+                                        onChange={e => setPassForm({ ...passForm, confirm: e.target.value })}
+                                        className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-white focus:border-cyan-500/50 outline-none"
+                                    />
+                                </div>
+
+                                {msg.text && (
+                                    <div className={`text-xs text-center p-2 rounded-lg ${msg.type === 'error' ? 'bg-rose-500/10 text-rose-400' : 'bg-emerald-500/10 text-emerald-400'}`}>
+                                        {msg.text}
+                                    </div>
+                                )}
+
+                                <NeonButton type="submit" className="w-full" disabled={loading}>
+                                    {loading ? "Updating..." : "Update Password"}
+                                </NeonButton>
+                            </form>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }
