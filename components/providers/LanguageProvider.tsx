@@ -240,6 +240,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         const saved = localStorage.getItem("axiom-lang") as Language;
         if (saved && (saved === "en" || saved === "id")) {
+            // eslint-disable-next-line
             setLanguage(saved);
         }
     }, []);

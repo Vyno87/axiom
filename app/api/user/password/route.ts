@@ -23,7 +23,7 @@ export async function PUT(req: NextRequest) {
         // Find the user
         // Note: session.user.id needs to be cast properly or handled
         // In auth.ts we returned id as string.
-        const user = await User.findById((session.user as any).id);
+        const user = await User.findById(session.user.id);
 
         if (!user) {
             return NextResponse.json({ success: false, error: "User not found" }, { status: 404 });

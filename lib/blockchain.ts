@@ -77,7 +77,7 @@ export async function verifyChain(): Promise<{
             record.uid,
             record.timestamp,
             record.status,
-            record.previousHash
+            record.previousHash || ""
         );
 
         if (record.hash !== recalculatedHash) {

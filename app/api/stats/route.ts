@@ -3,7 +3,7 @@ import dbConnect from "@/lib/mongodb";
 import Attendance from "@/models/Attendance";
 import Employee from "@/models/Employee";
 
-export async function GET(req: NextRequest) {
+export async function GET(_req: NextRequest) {
     await dbConnect();
 
     try {

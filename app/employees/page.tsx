@@ -12,18 +12,26 @@ import { useLanguage } from "@/components/providers/LanguageProvider"; // Import
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
+interface Employee {
+    _id: string;
+    uid: string | number;
+    name: string;
+    department: string;
+    isActive: boolean;
+}
+
 export default function EmployeesPage() {
     const { t } = useLanguage(); // Use hook
     const { data, error, isLoading } = useSWR("/api/employees", fetcher);
     const [search, setSearch] = useState("");
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
-    const [selectedEmployee, setSelectedEmployee] = useState<any>(null);
+    const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
     const [formData, setFormData] = useState({ uid: "", name: "", department: "" });
     const [loading, setLoading] = useState(false);
 
     // Filter employees
-    const employees = data?.data?.filter((e: any) =>
+    const employees = data?.data?.filter((e: Employee) =>
         e.name.toLowerCase().includes(search.toLowerCase()) ||
         e.department.toLowerCase().includes(search.toLowerCase()) ||
         e.uid.toString().includes(search)
@@ -79,7 +87,7 @@ export default function EmployeesPage() {
         }
     };
 
-    const openModal = (emp?: any) => {
+    const openModal = (emp?: Employee) => {
         if (emp) {
             setSelectedEmployee(emp);
             setFormData({ uid: emp.uid, name: emp.name, department: emp.department });
@@ -138,7 +146,7 @@ export default function EmployeesPage() {
                             ) : employees.length === 0 ? (
                                 <tr><td colSpan={5} className="px-6 py-8 text-center text-white/40">{t("empNoData")}</td></tr>
                             ) : (
-                                employees.map((emp: any) => (
+                                employees.map((emp: Employee) => (
                                     <tr key={emp._id} className="hover:bg-white/5 transition-colors group">
                                         <td className="px-6 py-4 font-mono text-cyan-400">
                                             #{emp.uid.toString().padStart(3, '0')}

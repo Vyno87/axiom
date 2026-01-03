@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import User from '@/models/User';
 
-export async function POST(req: NextRequest) {
+export async function POST(_req: NextRequest) {
     try {
         await dbConnect();
 
@@ -37,9 +37,9 @@ export async function POST(req: NextRequest) {
             message: 'Users seeded successfully',
             count: users.length,
         });
-    } catch (error: any) {
+    } catch (error) {
         return NextResponse.json(
-            { error: 'Failed to seed users', details: error.message },
+            { error: 'Failed to seed users', details: error instanceof Error ? error.message : 'Unknown error' },
             { status: 500 }
         );
     }

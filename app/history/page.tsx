@@ -143,6 +143,7 @@ export default function HistoryPage() {
         // Department Breakdown
         if (stats && Object.keys(stats.byDepartment).length > 0) {
             doc.setFontSize(12);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             doc.text("Department Breakdown", 14, (doc as any).lastAutoTable.finalY + 10);
 
             const deptData = Object.entries(stats.byDepartment).map(([dept, { in: ins, out }]) => [
@@ -153,6 +154,7 @@ export default function HistoryPage() {
             ]);
 
             autoTable(doc, {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 startY: (doc as any).lastAutoTable.finalY + 14,
                 head: [["Department", "Check-Ins", "Check-Outs", "Total"]],
                 body: deptData,

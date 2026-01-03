@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Fingerprint, Lock, User, Smartphone, Globe } from "lucide-react";
+import { Fingerprint, Lock, User, Smartphone } from "lucide-react";
 import NeonButton from "@/components/ui/NeonButton";
 import GlassCard from "@/components/ui/GlassCard";
 import { useLanguage } from "@/components/providers/LanguageProvider";
@@ -16,6 +16,7 @@ export default function LoginPage() {
     const [password, setPassword] = useState("");
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
     const [showInstallPrompt, setShowInstallPrompt] = useState(false);
 
@@ -57,6 +58,7 @@ export default function LoginPage() {
         // Android / Desktop (Chrome/Edge)
         if (deferredPrompt) {
             deferredPrompt.prompt();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             deferredPrompt.userChoice.then((choiceResult: any) => {
                 if (choiceResult.outcome === "accepted") {
                     console.log("User accepted the install prompt");
@@ -212,7 +214,7 @@ export default function LoginPage() {
                             onClick={handleInstallClick}
                             className="w-full"
                             // Always enabled to show instructions if prompt not available (e.g. iOS)
-                            disabled={false}
+                            disabled={!showInstallPrompt && /iPhone|iPad|iPod/.test(navigator.userAgent) === false && !deferredPrompt}
                         >
                             <Smartphone className="w-4 h-4 mr-2" />
                             {t("installPWA")}

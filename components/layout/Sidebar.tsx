@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Users, History, Settings, Fingerprint, LogOut } from "lucide-react";
+import { LayoutDashboard, Users, History, Settings, Fingerprint } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
-import { useSession, signOut } from "next-auth/react";
+import { useSession } from "next-auth/react";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 
 export default function Sidebar() {
@@ -44,7 +44,7 @@ export default function Sidebar() {
             <nav className="flex-1 px-4 space-y-2 mt-8">
                 {menuItems.map((item) => {
                     // Role Check
-                    if (item.role === "admin" && (session?.user as any)?.role !== "admin") return null;
+                    if (item.role === "admin" && session?.user?.role !== "admin") return null;
 
                     const isActive = pathname === item.href;
                     return (
@@ -103,7 +103,7 @@ export default function Sidebar() {
                         </div>
                         <div className="overflow-hidden">
                             <p className="text-sm font-medium text-white truncate">{session.user?.name}</p>
-                            <p className="text-xs text-white/40 capitalize">{(session.user as any)?.role}</p>
+                            <p className="text-xs text-white/40 capitalize">{session.user?.role}</p>
                         </div>
                     </div>
                 )}

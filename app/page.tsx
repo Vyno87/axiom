@@ -28,7 +28,7 @@ export default function Dashboard() {
   if (!session) return null;
 
   // USER DASHBOARD (Limited View)
-  if ((session?.user as any)?.role !== "admin") {
+  if (session?.user?.role !== "admin") {
     return (
       <div className="space-y-6">
         <h1 className="text-3xl font-bold text-white">{t("welcome")}, {session.user?.name}</h1>

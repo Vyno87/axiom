@@ -46,7 +46,7 @@ export default function SettingsPage() {
             } else {
                 setMsg({ type: "error", text: data.error || t("error") });
             }
-        } catch (error) {
+        } catch {
             setMsg({ type: "error", text: t("error") });
         } finally {
             setLoading(false);
