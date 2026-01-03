@@ -1,12 +1,5 @@
 "use client";
 
-import { motion } from "framer-motion";
-import GlassCard from "@/components/ui/GlassCard";
-import NeonButton from "@/components/ui/NeonButton";
-import { Plus, Search, Trash2, Edit } from "lucide-react";
-
-"use client";
-
 import { useState } from "react";
 import useSWR, { mutate } from "swr";
 import { motion, AnimatePresence } from "framer-motion";
