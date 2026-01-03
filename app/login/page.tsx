@@ -182,7 +182,6 @@ export default function LoginPage() {
                             variant="success"
                             onClick={handleInstallClick}
                             className="w-full h-10 bg-emerald-500/10 border-emerald-500/20 hover:bg-emerald-500/20 text-emerald-400"
-                            disabled={!showInstallPrompt && /iPhone|iPad|iPod/.test(navigator.userAgent) === false && !deferredPrompt}
                         >
                             <Smartphone className="w-4 h-4 mr-2" />
                             {t("installPWA")}
